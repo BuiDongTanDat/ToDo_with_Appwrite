@@ -1,12 +1,13 @@
-import 'dart:math';
+import 'package:appwrite/models.dart';
 import 'package:flutter/material.dart';
+import 'package:midterm/backend/controllers/TodoController.dart';
 import 'package:midterm/widgets/CustomInputAdd.dart';
 import '../../../../theme/color.dart';
-import '../model/ToDo.dart';
+import '../model/TodoModel.dart';
 
 class AddToDoPage extends StatefulWidget {
-  final Function(ToDo) onSaveTask;
-  final ToDo? initialTask;
+  final Function(TodoModel) onSaveTask;
+  final TodoModel? initialTask;
 
   const AddToDoPage({
     super.key,
@@ -18,7 +19,8 @@ class AddToDoPage extends StatefulWidget {
   State<AddToDoPage> createState() => _AddToDoPageState();
 }
 
-class _AddToDoPageState extends State<AddToDoPage> with SingleTickerProviderStateMixin {
+class _AddToDoPageState extends State<AddToDoPage>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
@@ -33,7 +35,7 @@ class _AddToDoPageState extends State<AddToDoPage> with SingleTickerProviderStat
     super.initState();
     // Initialize fields based on initialTask
     _titleController.text = widget.initialTask?.title ?? '';
-    _descController.text = widget.initialTask?.desc ?? '';
+    _descController.text = widget.initialTask?.description ?? '';
     _dueDate = widget.initialTask?.dueDate ?? DateTime.now();
     _selectedColor = widget.initialTask?.color ?? 'red';
     _isNotified = widget.initialTask?.isNotified ?? false;
@@ -65,21 +67,29 @@ class _AddToDoPageState extends State<AddToDoPage> with SingleTickerProviderStat
     super.dispose();
   }
 
-  void _saveTask() {
+  Future<void> _saveTask() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final task = ToDo(
-      id: widget.initialTask?.id ?? Random().nextInt(10000).toString(),
+    final task = TodoModel(
       title: _titleController.text.trim(),
-      desc: _descController.text.trim(),
+      description: _descController.text.trim(),
       dueDate: _dueDate,
-      isCompleted: widget.initialTask?.isCompleted ?? false,
       color: _selectedColor,
+      isCompleted: widget.initialTask?.isCompleted ?? false,
       isNotified: _isNotified,
     );
+    // print("✅" + _dueDate.toString());
 
-    widget.onSaveTask(task);
-    Navigator.pop(context);
+    try {
+      Document response = await create(task);
+      final data = response.data;
+      print("✅" + data.toString());
+    } catch (e) {
+      print("🛑 Error: $e");
+    }
+
+    // widget.onSaveTask(task);
+    // Navigator.pop(context);
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -172,7 +182,8 @@ class _AddToDoPageState extends State<AddToDoPage> with SingleTickerProviderStat
                     ),
                   ),
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -244,11 +255,13 @@ class _AddToDoPageState extends State<AddToDoPage> with SingleTickerProviderStat
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.calendar_today, size: 20, color: Colors.grey),
+                                  const Icon(Icons.calendar_today,
+                                      size: 20, color: Colors.grey),
                                   const SizedBox(width: 10),
                                   Text(
                                     '${_dueDate.day}/${_dueDate.month}/${_dueDate.year}',
-                                    style: const TextStyle(fontSize: 12, color: Colors.black),
+                                    style: const TextStyle(
+                                        fontSize: 12, color: Colors.black),
                                   ),
                                 ],
                               ),
@@ -297,7 +310,8 @@ class _AddToDoPageState extends State<AddToDoPage> with SingleTickerProviderStat
                               ),
                               const Text(
                                 'Bật thông báo',
-                                style: TextStyle(fontSize: 12, color: Colors.black),
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.black),
                               ),
                             ],
                           ),

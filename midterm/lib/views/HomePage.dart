@@ -4,7 +4,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../bloc/todo_bloc.dart';
 import '../bloc/todo_event.dart';
 import '../bloc/todo_state.dart';
-import '../model/ToDo.dart';
+import '../model/TodoModel.dart';
 import '../theme/color.dart';
 import '../widgets/ToDoCard.dart';
 import 'AddToDoPage.dart';
@@ -45,11 +45,13 @@ class _HomePageState extends State<HomePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: const [
                                       Text(
                                         'Xin chào',
@@ -70,7 +72,8 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                   const CircleAvatar(
                                     radius: 20,
-                                    backgroundImage: AssetImage('assets/avatar.png'),
+                                    backgroundImage:
+                                        AssetImage('assets/avatar.png'),
                                   ),
                                 ],
                               ),
@@ -147,7 +150,8 @@ class _HomePageState extends State<HomePage> {
                           final todos = state.todos;
                           return SingleChildScrollView(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 0),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 0),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisSize: MainAxisSize.min,
@@ -226,7 +230,7 @@ class _HomePageState extends State<HomePage> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => AddToDoPage(
-                              onSaveTask: (ToDo newTask) {
+                              onSaveTask: (TodoModel newTask) {
                                 context.read<TodoBloc>().add(AddTodo(newTask));
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
@@ -288,7 +292,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  List<ToDo> _getTodayTasks(List<ToDo> todos) {
+  List<TodoModel> _getTodayTasks(List<TodoModel> todos) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     return todos.where((todo) {
@@ -298,9 +302,10 @@ class _HomePageState extends State<HomePage> {
     }).toList();
   }
 
-  List<ToDo> _getTomorrowTasks(List<ToDo> todos) {
+  List<TodoModel> _getTomorrowTasks(List<TodoModel> todos) {
     final now = DateTime.now();
-    final tomorrow = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+    final tomorrow =
+        DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
     return todos.where((todo) {
       final taskDate =
           DateTime(todo.dueDate.year, todo.dueDate.month, todo.dueDate.day);
@@ -312,7 +317,7 @@ class _HomePageState extends State<HomePage> {
     required String title,
     required Color titleColor,
     required String backgroundImage,
-    required List<ToDo> tasks,
+    required List<TodoModel> tasks,
     required BuildContext context,
   }) {
     return Column(
@@ -425,9 +430,12 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                     TextButton(
                                       onPressed: () {
-                                        context.read<TodoBloc>().add(DeleteTodo(todo.id));
+                                        context
+                                            .read<TodoBloc>()
+                                            .add(DeleteTodo(todo.id));
                                         Navigator.pop(context);
-                                        ScaffoldMessenger.of(context).showSnackBar(
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
                                           const SnackBar(
                                             content: Text('Task deleted!'),
                                             duration: Duration(seconds: 1),
@@ -466,18 +474,23 @@ class _HomePageState extends State<HomePage> {
                     child: ToDoCard(
                       todo: todo,
                       onToggleComplete: (value) {
-                        context.read<TodoBloc>().add(ToggleTodoCompletion(todo.id, value ?? false));
+                        context
+                            .read<TodoBloc>()
+                            .add(ToggleTodoCompletion(todo.id, value ?? false));
                       },
                       onToggleNotification: (value) {
-                        context.read<TodoBloc>().add(ToggleTodoNotification(todo.id, value ?? false));
+                        context.read<TodoBloc>().add(
+                            ToggleTodoNotification(todo.id, value ?? false));
                       },
                       onEdit: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => AddToDoPage(
-                              onSaveTask: (ToDo updatedTask) {
-                                context.read<TodoBloc>().add(UpdateTodo(updatedTask));
+                              onSaveTask: (TodoModel updatedTask) {
+                                context
+                                    .read<TodoBloc>()
+                                    .add(UpdateTodo(updatedTask));
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text('Task updated!'),

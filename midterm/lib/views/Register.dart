@@ -1,53 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:midterm/backend/controllers/AuthController.dart';
 import '../theme/color.dart';
 import '../widgets/CustomInputField.dart';
 import 'Login.dart';
 
-class RegisterPage extends StatelessWidget {
-  final TextEditingController _usernameController = TextEditingController();
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
+
+  @override
+  State<RegisterPage> createState() => _RegisterPageState();
+}
+
+class _RegisterPageState extends State<RegisterPage> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  RegisterPage({super.key});
-
   Future<void> _register(BuildContext context) async {
+    //nàm gì đi hong được return dị, lúc có lỗi là hong biết lỗi gì ó!
+    // trong lúc chờ data thì phải có CircularProgressIndicator nhooo.
     // if (!_formKey.currentState!.validate()) return;
 
-    // String username = _usernameController.text.trim();
-    // String password = _passwordController.text.trim();
+    String name = _nameController.text.trim();
+    String email = _emailController.text.trim();
+    String password = _passwordController.text.trim();
 
-    // DatabaseReference userRef = FirebaseDatabase.instance.ref().child("users/$username");
+    try {
+      String result = await register(name, email, password);
+      print(result);
 
-    // try {
-    //   DatabaseEvent event = await userRef.once();
+      String _message = result == '201'
+          ? "Account created successfully."
+          : "Account creation failed.";
 
-    //   if (event.snapshot.exists) {
-    //     ScaffoldMessenger.of(context).showSnackBar(
-    //       const SnackBar(content: Text("Tên đăng nhập đã tồn tại")),
-    //     );
-    //     return;
-    //   }
-
-    //   await userRef.set({
-    //     'username': username,
-    //     'password': password,
-    //   });
-
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(content: Text("Đăng ký thành công!")),
-    //   );
-
-    //   Navigator.pushReplacement(
-    //     context,
-    //     MaterialPageRoute(builder: (context) => LoginPage()),
-    //   );
-    // } catch (e) {
-    //   debugPrint('Register error: $e');
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(content: Text('Lỗi khi đăng ký: $e')),
-    //   );
-    // }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_message)),
+      );
+    } catch (e) {
+      print("🛑 Error: $e");
+    }
   }
 
   @override
@@ -61,7 +54,8 @@ class RegisterPage extends StatelessWidget {
               top: 0,
               left: 0,
               right: 0,
-              height: MediaQuery.of(context).size.height / 2, // Chiếm nửa trên màn hình
+              height: MediaQuery.of(context).size.height /
+                  2, // Chiếm nửa trên màn hình
               child: Container(
                 decoration: const BoxDecoration(
                   image: DecorationImage(
@@ -111,13 +105,24 @@ class RegisterPage extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 20),
                                 CustomInputField(
-                                  controller: _usernameController,
-                                  hintText: 'Username',
-                                 
+                                  controller: _nameController,
+                                  hintText: 'Your name',
                                   icon: Icons.person,
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
-                                      return 'Vui lòng nhập tên đăng nhập';
+                                      return 'Vui lòng nhập tên';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                                CustomInputField(
+                                  controller: _emailController,
+                                  hintText: 'Email',
+                                  icon: Icons.email,
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Vui lòng nhập email';
                                     }
                                     return null;
                                   },
@@ -126,7 +131,6 @@ class RegisterPage extends StatelessWidget {
                                 CustomInputField(
                                   controller: _passwordController,
                                   hintText: 'Password',
-                                 
                                   icon: Icons.lock,
                                   obscureText: true,
                                   validator: (value) {
@@ -140,7 +144,6 @@ class RegisterPage extends StatelessWidget {
                                 CustomInputField(
                                   controller: _confirmController,
                                   hintText: 'Confirm Password',
-                                  
                                   icon: Icons.lock_outline,
                                   obscureText: true,
                                   validator: (value) {
@@ -180,7 +183,8 @@ class RegisterPage extends StatelessWidget {
                           onTap: () {
                             Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(builder: (context) => LoginPage()),
+                              MaterialPageRoute(
+                                  builder: (context) => LoginPage()),
                             );
                           },
                           child: Text(

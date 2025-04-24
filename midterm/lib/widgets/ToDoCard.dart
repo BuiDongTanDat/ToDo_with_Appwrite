@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../model/ToDo.dart';
+import '../model/TodoModel.dart';
 import '../theme/color.dart';
 
 class ToDoCard extends StatefulWidget {
-  final ToDo todo;
+  final TodoModel todo;
   final Function(bool?) onToggleComplete;
   final Function(bool?) onToggleNotification;
   final VoidCallback? onEdit; // Thêm callback onEdit
@@ -70,7 +70,8 @@ class _ToDoCardState extends State<ToDoCard> {
             // Main content
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 child: Row(
                   children: [
                     // Circular Checkbox
@@ -122,7 +123,8 @@ class _ToDoCardState extends State<ToDoCard> {
                             ),
                           ),
                           Text(
-                            DateFormat('dd/MM/yyyy').format(widget.todo.dueDate),
+                            DateFormat('dd/MM/yyyy')
+                                .format(widget.todo.dueDate),
                             style: const TextStyle(
                               fontSize: 10,
                               color: AppColors.textColorGrey,
@@ -142,14 +144,18 @@ class _ToDoCardState extends State<ToDoCard> {
                             widget.todo.title,
                             style: TextStyle(
                               fontSize: 12,
-                              color: widget.todo.isCompleted ? AppColors.textColorGrey : Colors.black,
-                              decoration: widget.todo.isCompleted ? TextDecoration.lineThrough : null,
+                              color: widget.todo.isCompleted
+                                  ? AppColors.textColorGrey
+                                  : Colors.black,
+                              decoration: widget.todo.isCompleted
+                                  ? TextDecoration.lineThrough
+                                  : null,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            widget.todo.desc,
+                            widget.todo.description,
                             style: const TextStyle(
                               fontSize: 10,
                               color: AppColors.textColorGrey,
@@ -166,10 +172,13 @@ class _ToDoCardState extends State<ToDoCard> {
                       width: 20,
                       alignment: Alignment.center,
                       child: GestureDetector(
-                        onTap: () => widget.onToggleNotification(!widget.todo.isNotified),
+                        onTap: () => widget
+                            .onToggleNotification(!widget.todo.isNotified),
                         child: ImageIcon(
                           const AssetImage('assets/Notification.png'),
-                          color: widget.todo.isNotified ?  AppColors.textColorYellow : AppColors.textColorGrey ,
+                          color: widget.todo.isNotified
+                              ? AppColors.textColorYellow
+                              : AppColors.textColorGrey,
                           size: 24,
                         ),
                       ),

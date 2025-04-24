@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../model/ToDo.dart';
+import '../model/TodoModel.dart';
 
 abstract class TodoEvent extends Equatable {
   const TodoEvent();
@@ -11,7 +11,7 @@ abstract class TodoEvent extends Equatable {
 class LoadTodos extends TodoEvent {}
 
 class AddTodo extends TodoEvent {
-  final ToDo todo;
+  final TodoModel todo;
 
   const AddTodo(this.todo);
 
@@ -20,7 +20,7 @@ class AddTodo extends TodoEvent {
 }
 
 class UpdateTodo extends TodoEvent {
-  final ToDo todo;
+  final TodoModel todo;
 
   const UpdateTodo(this.todo);
 

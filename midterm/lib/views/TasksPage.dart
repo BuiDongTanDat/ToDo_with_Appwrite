@@ -4,7 +4,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../bloc/todo_bloc.dart';
 import '../bloc/todo_event.dart';
 import '../bloc/todo_state.dart';
-import '../model/ToDo.dart';
+import '../model/TodoModel.dart';
 import '../theme/color.dart';
 import '../widgets/ToDoCard.dart';
 import 'AddToDoPage.dart';
@@ -92,7 +92,8 @@ class TasksPage extends StatelessWidget {
                                         context: context,
                                         builder: (context) => AlertDialog(
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(15),
+                                            borderRadius:
+                                                BorderRadius.circular(15),
                                           ),
                                           title: const Text(
                                             'Xác nhận xóa',
@@ -108,23 +109,30 @@ class TasksPage extends StatelessWidget {
                                           ),
                                           actions: [
                                             TextButton(
-                                              onPressed: () => Navigator.pop(context),
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
                                               child: const Text(
                                                 'Hủy',
                                                 style: TextStyle(
-                                                  color: AppColors.textColorGrey,
+                                                  color:
+                                                      AppColors.textColorGrey,
                                                   fontSize: 16,
                                                 ),
                                               ),
                                             ),
                                             TextButton(
                                               onPressed: () {
-                                                context.read<TodoBloc>().add(DeleteTodo(todo.id));
+                                                context
+                                                    .read<TodoBloc>()
+                                                    .add(DeleteTodo(todo.id));
                                                 Navigator.pop(context);
-                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
                                                   const SnackBar(
-                                                    content: Text('Task deleted!'),
-                                                    duration: Duration(seconds: 1),
+                                                    content:
+                                                        Text('Task deleted!'),
+                                                    duration:
+                                                        Duration(seconds: 1),
                                                   ),
                                                 );
                                               },
@@ -143,7 +151,8 @@ class TasksPage extends StatelessWidget {
                                     child: Container(
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                        color: AppColors.textColorRed.withOpacity(0.2),
+                                        color: AppColors.textColorRed
+                                            .withOpacity(0.2),
                                         borderRadius: BorderRadius.circular(50),
                                       ),
                                       child: Image.asset(
@@ -160,19 +169,26 @@ class TasksPage extends StatelessWidget {
                             child: ToDoCard(
                               todo: todo,
                               onToggleComplete: (value) {
-                                context.read<TodoBloc>().add(ToggleTodoCompletion(todo.id, value ?? false));
+                                context.read<TodoBloc>().add(
+                                    ToggleTodoCompletion(
+                                        todo.id, value ?? false));
                               },
                               onToggleNotification: (value) {
-                                context.read<TodoBloc>().add(ToggleTodoNotification(todo.id, value ?? false));
+                                context.read<TodoBloc>().add(
+                                    ToggleTodoNotification(
+                                        todo.id, value ?? false));
                               },
                               onEdit: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => AddToDoPage(
-                                      onSaveTask: (ToDo updatedTask) {
-                                        context.read<TodoBloc>().add(UpdateTodo(updatedTask));
-                                        ScaffoldMessenger.of(context).showSnackBar(
+                                      onSaveTask: (TodoModel updatedTask) {
+                                        context
+                                            .read<TodoBloc>()
+                                            .add(UpdateTodo(updatedTask));
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
                                           const SnackBar(
                                             content: Text('Task updated!'),
                                             duration: Duration(seconds: 1),

@@ -1,0 +1,2 @@
+D:/CROSS-PLATFORM MOBILE APPLICATION/Midterm/code/midterm/android/app/.cxx/Debug/10523a2i/armeabi-v7a/CMakeFiles/edit_cache.dir
+D:/CROSS-PLATFORM MOBILE APPLICATION/Midterm/code/midterm/android/app/.cxx/Debug/10523a2i/armeabi-v7a/CMakeFiles/rebuild_cache.dir

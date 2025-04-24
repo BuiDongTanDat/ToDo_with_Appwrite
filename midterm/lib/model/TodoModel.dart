@@ -1,20 +1,19 @@
-class ToDo {
+class TodoModel {
   String id;
   String title;
-  String desc;
+  String description;
   DateTime dueDate;
+  String color;
   bool isCompleted;
-  String color; // e.g., 'red', 'blue', 'green'
   bool isNotified;
 
-  ToDo({
-    required this.id,
+  TodoModel({
+    this.id = '',
     required this.title,
-    required this.desc,
+    required this.description,
     required this.dueDate,
-    this.isCompleted = false,
     required this.color,
-
+    this.isCompleted = false,
     this.isNotified = false,
   });
 
@@ -23,23 +22,23 @@ class ToDo {
     return {
       'id': id,
       'title': title,
-      'desc': desc,
+      'desc': description,
       'dueDate': dueDate.toIso8601String(),
-      'isCompleted': isCompleted,
       'color': color,
+      'isCompleted': isCompleted,
       'isNotified': isNotified,
     };
   }
 
   // Create ToDo from Map
-  factory ToDo.fromMap(Map<String, dynamic> map) {
-    return ToDo(
+  factory TodoModel.fromMap(Map<String, dynamic> map) {
+    return TodoModel(
       id: map['id'],
       title: map['title'],
-      desc: map['desc'],
+      description: map['description'],
       dueDate: DateTime.parse(map['dueDate']),
-      isCompleted: map['isCompleted'],
       color: map['color'],
+      isCompleted: map['isCompleted'],
       isNotified: map['isNotified'],
     );
   }

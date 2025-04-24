@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:midterm/backend/controllers/AuthController.dart';
 import '../theme/color.dart';
 import '../widgets/CustomInputField.dart';
 import 'Register.dart';
 
-
 class LoginPage extends StatelessWidget {
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
@@ -16,52 +16,22 @@ class LoginPage extends StatelessWidget {
     //   return;
     // }
 
-    // String username = _usernameController.text.trim();
-    // String password = _passwordController.text.trim();
+    String email = _emailController.text.trim();
+    String password = _passwordController.text.trim();
 
-    // DatabaseReference usersRef = FirebaseDatabase.instance.ref().child("users");
+    try {
+      final session = await login(email, password);
+      print("✅ Seesion" + session.toString());
 
-    // try {
-    //   DatabaseEvent event = await usersRef.once();
-    //   final data = event.snapshot.value as Map<dynamic, dynamic>?;
+      String _message =
+          session != null ? "Login successfully." : "Login failed.";
 
-    //   if (data != null) {
-    //     bool found = false;
-    //     String foundUserId = '';
-
-    //     data.forEach((key, value) {
-    //       if (value["username"] == username && value["password"] == password) {
-    //         found = true;
-    //         foundUserId = key;
-    //       }
-    //     });
-
-    //     if (found) {
-    //       SharedPreferences prefs = await SharedPreferences.getInstance();
-    //       await prefs.setString('userId', foundUserId);
-
-    //       await _saveUserLocation(foundUserId);
-
-    //       Navigator.pushReplacement(
-    //         context,
-    //         MaterialPageRoute(builder: (context) => HomePage()),
-    //       );
-    //     } else {
-    //       ScaffoldMessenger.of(context).showSnackBar(
-    //         const SnackBar(content: Text('Sai tài khoản hoặc mật khẩu')),
-    //       );
-    //     }
-    //   } else {
-    //     ScaffoldMessenger.of(context).showSnackBar(
-    //       const SnackBar(content: Text('Không tìm thấy dữ liệu người dùng')),
-    //     );
-    //   }
-    // } catch (e) {
-    //   debugPrint('Login error: $e');
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(content: Text('Đã xảy ra lỗi khi đăng nhập: $e')),
-    //   );
-    // }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_message)),
+      );
+    } catch (e) {
+      print("❌ Error: $e");
+    }
   }
 
   @override
@@ -75,7 +45,8 @@ class LoginPage extends StatelessWidget {
               top: 0,
               left: 0,
               right: 0,
-              height: MediaQuery.of(context).size.height / 2, // Chiếm nửa trên màn hình
+              height: MediaQuery.of(context).size.height /
+                  2, // Chiếm nửa trên màn hình
               child: Container(
                 decoration: const BoxDecoration(
                   image: DecorationImage(
@@ -125,13 +96,12 @@ class LoginPage extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 20),
                                 CustomInputField(
-                                  controller: _usernameController,
-                                  hintText: 'Username',
-                                  
-                                  icon: Icons.person,
+                                  controller: _emailController,
+                                  hintText: 'Email',
+                                  icon: Icons.email,
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
-                                      return 'Vui lòng nhập tên đăng nhập';
+                                      return 'Vui lòng nhập email';
                                     }
                                     return null;
                                   },
@@ -140,7 +110,6 @@ class LoginPage extends StatelessWidget {
                                 CustomInputField(
                                   controller: _passwordController,
                                   hintText: 'Password',
-                                  
                                   icon: Icons.lock,
                                   obscureText: true,
                                   validator: (value) {

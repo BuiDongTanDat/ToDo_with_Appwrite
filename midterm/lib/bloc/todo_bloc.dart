@@ -1,77 +1,77 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:midterm/bloc/todo_event.dart';
 import 'package:midterm/bloc/todo_state.dart';
-import '../model/ToDo.dart';
+import 'package:midterm/model/TodoModel.dart';
 
 class TodoBloc extends Bloc<TodoEvent, TodoState> {
-  List<ToDo> _todos = [];
+  List<TodoModel> _todos = [];
 
   TodoBloc() : super(TodoInitial()) {
     // Khởi tạo mẫu dữ liệu
     _todos = [
-      ToDo(
+      TodoModel(
         id: '1',
         title: 'Buy groceries',
-        desc: 'Milk, Bread, Eggs',
+        description: 'Milk, Bread, Eggs',
         dueDate: DateTime.now(),
         color: 'green',
         isNotified: true,
       ),
-      ToDo(
+      TodoModel(
         id: '2',
         title: 'Finish report',
-        desc: 'Complete the quarterly report',
+        description: 'Complete the quarterly report',
         dueDate: DateTime.now().add(const Duration(days: 1)),
         color: 'blue',
       ),
-      ToDo(
+      TodoModel(
         id: '3',
         title: 'Call mom',
-        desc: 'Check in and catch up',
+        description: 'Check in and catch up',
         dueDate: DateTime.now().add(const Duration(days: 2)),
         color: 'red',
       ),
-      ToDo(
+      TodoModel(
         id: '4',
         title: 'Buy groceries',
-        desc: 'Fruits, Vegetables',
+        description: 'Fruits, Vegetables',
         dueDate: DateTime.now(),
         color: 'green',
         isNotified: true,
       ),
-      ToDo(
+      TodoModel(
         id: '5',
         title: 'Finish report',
-        desc: 'Finalize slides',
+        description: 'Finalize slides',
         dueDate: DateTime.now().add(const Duration(days: 1)),
         color: 'blue',
       ),
-      ToDo(
+      TodoModel(
         id: '6',
         title: 'Call mom',
-        desc: 'Plan weekend visit',
+        description: 'Plan weekend visit',
         dueDate: DateTime.now().add(const Duration(days: 2)),
         color: 'red',
       ),
-      ToDo(
+      TodoModel(
         id: '7',
         title: 'Buy groceries',
-        desc: 'Milk, Bread, Eggs',
+        description: 'Milk, Bread, Eggs',
         dueDate: DateTime.now(),
         color: 'green',
         isNotified: true,
       ),
-      ToDo(
+      TodoModel(
         id: '8',
         title: 'Finish report',
-        desc: 'Review data',
+        description: 'Review data',
         dueDate: DateTime.now().add(const Duration(days: 1)),
         color: 'blue',
       ),
-      ToDo(
+      TodoModel(
         id: '9',
         title: 'Call mom',
-        desc: 'Discuss family event',
+        description: 'Discuss family event',
         dueDate: DateTime.now().add(const Duration(days: 2)),
         color: 'red',
       ),
@@ -128,14 +128,15 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
     }
   }
 
-  void _onToggleTodoCompletion(ToggleTodoCompletion event, Emitter<TodoState> emit) {
+  void _onToggleTodoCompletion(
+      ToggleTodoCompletion event, Emitter<TodoState> emit) {
     try {
       final index = _todos.indexWhere((todo) => todo.id == event.id);
       if (index != -1) {
-        _todos[index] = ToDo(
+        _todos[index] = TodoModel(
           id: _todos[index].id,
           title: _todos[index].title,
-          desc: _todos[index].desc,
+          description: _todos[index].description,
           dueDate: _todos[index].dueDate,
           isCompleted: event.isCompleted,
           color: _todos[index].color,
@@ -150,14 +151,15 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
     }
   }
 
-  void _onToggleTodoNotification(ToggleTodoNotification event, Emitter<TodoState> emit) {
+  void _onToggleTodoNotification(
+      ToggleTodoNotification event, Emitter<TodoState> emit) {
     try {
       final index = _todos.indexWhere((todo) => todo.id == event.id);
       if (index != -1) {
-        _todos[index] = ToDo(
+        _todos[index] = TodoModel(
           id: _todos[index].id,
           title: _todos[index].title,
-          desc: _todos[index].desc,
+          description: _todos[index].description,
           dueDate: _todos[index].dueDate,
           isCompleted: _todos[index].isCompleted,
           color: _todos[index].color,
