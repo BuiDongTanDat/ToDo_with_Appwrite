@@ -1,6 +1,7 @@
 class ToDo {
   String id;
   String title;
+  String desc;
   DateTime dueDate;
   bool isCompleted;
   String color; // e.g., 'red', 'blue', 'green'
@@ -9,9 +10,11 @@ class ToDo {
   ToDo({
     required this.id,
     required this.title,
+    required this.desc,
     required this.dueDate,
     this.isCompleted = false,
     required this.color,
+
     this.isNotified = false,
   });
 
@@ -20,6 +23,7 @@ class ToDo {
     return {
       'id': id,
       'title': title,
+      'desc': desc,
       'dueDate': dueDate.toIso8601String(),
       'isCompleted': isCompleted,
       'color': color,
@@ -32,6 +36,7 @@ class ToDo {
     return ToDo(
       id: map['id'],
       title: map['title'],
+      desc: map['desc'],
       dueDate: DateTime.parse(map['dueDate']),
       isCompleted: map['isCompleted'],
       color: map['color'],

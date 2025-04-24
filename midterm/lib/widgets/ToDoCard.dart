@@ -7,12 +7,14 @@ class ToDoCard extends StatefulWidget {
   final ToDo todo;
   final Function(bool?) onToggleComplete;
   final Function(bool?) onToggleNotification;
+  final VoidCallback? onEdit; // Thêm callback onEdit
 
   const ToDoCard({
     super.key,
     required this.todo,
     required this.onToggleComplete,
     required this.onToggleNotification,
+    this.onEdit,
   });
 
   @override
@@ -30,6 +32,8 @@ class _ToDoCardState extends State<ToDoCard> {
         return Colors.blue;
       case 'green':
         return Colors.green;
+      case 'yellow':
+        return Colors.yellow;
       default:
         return Colors.grey;
     }
@@ -38,11 +42,7 @@ class _ToDoCardState extends State<ToDoCard> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        // setState(() {
-        //   _isSelected = !_isSelected;
-        // });
-      },
+      onTap: widget.onEdit, // Gọi onEdit khi nhấn vào card
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
@@ -55,7 +55,7 @@ class _ToDoCardState extends State<ToDoCard> {
         ),
         child: Row(
           children: [
-            // Colored bar (no padding)
+            // Colored bar
             Container(
               width: 10,
               height: 50,
@@ -110,26 +110,55 @@ class _ToDoCardState extends State<ToDoCard> {
                     // Time (Due Date)
                     Container(
                       width: 60,
-                      child: Text(
-                        DateFormat('HH:mm').format(widget.todo.dueDate),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: AppColors.textColorGrey,
-                        ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            DateFormat('HH:mm').format(widget.todo.dueDate),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: AppColors.textColorGrey,
+                            ),
+                          ),
+                          Text(
+                            DateFormat('dd/MM/yyyy').format(widget.todo.dueDate),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: AppColors.textColorGrey,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 10),
-                    // Task Title
+                    // Task Title and Description
                     Expanded(
-                      child: Text(
-                        widget.todo.title,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: widget.todo.isCompleted ? AppColors.textColorGrey : Colors.black,
-                          decoration: widget.todo.isCompleted ? TextDecoration.lineThrough : null,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.todo.title,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: widget.todo.isCompleted ? AppColors.textColorGrey : Colors.black,
+                              decoration: widget.todo.isCompleted ? TextDecoration.lineThrough : null,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            widget.todo.desc,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: AppColors.textColorGrey,
+                              fontStyle: FontStyle.italic,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
                     ),
                     // Notification Toggle

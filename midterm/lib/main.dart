@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:midterm/views/Login.dart';
+import 'package:midterm/views/Register.dart';
 
-import 'package:midterm/views/HomePage.dart';
+import 'views/HomePage.dart';
 
-import 'views/IntroPage.dart';
 
 void main() {
   runApp(MaterialApp(
