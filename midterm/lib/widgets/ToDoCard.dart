@@ -169,7 +169,7 @@ class _ToDoCardState extends State<ToDoCard> {
                         onTap: () => widget.onToggleNotification(!widget.todo.isNotified),
                         child: ImageIcon(
                           const AssetImage('assets/Notification.png'),
-                          color: widget.todo.isNotified ? AppColors.textColorGrey : AppColors.textColorYellow,
+                          color: widget.todo.isNotified ?  AppColors.textColorYellow : AppColors.textColorGrey ,
                           size: 24,
                         ),
                       ),

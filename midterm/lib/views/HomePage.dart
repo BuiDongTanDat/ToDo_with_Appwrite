@@ -1,6 +1,9 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import '../bloc/todo_bloc.dart';
+import '../bloc/todo_event.dart';
+import '../bloc/todo_state.dart';
 import '../model/ToDo.dart';
 import '../theme/color.dart';
 import '../widgets/ToDoCard.dart';
@@ -15,203 +18,17 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final List<ToDo> _todos = [];
   int _currentIndex = 0;
-  bool _isHovering = false; // Trạng thái hover cho nút cộng
-
-  @override
-  void initState() {
-    super.initState();
-    // Add sample tasks
-    _todos.addAll([
-      ToDo(
-        id: '1',
-        title: 'Buy groceries',
-        desc: 'Milk, Bread, Eggs',
-        dueDate: DateTime.now(),
-        color: 'green',
-        isNotified: true,
-      ),
-      ToDo(
-        id: '2',
-        title: 'Finish report',
-        desc: 'Complete the quarterly report',
-        dueDate: DateTime.now().add(const Duration(days: 1)),
-        color: 'blue',
-      ),
-      ToDo(
-        id: '3',
-        title: 'Call mom',
-        desc: 'Check in and catch up',
-        dueDate: DateTime.now().add(const Duration(days: 2)),
-        color: 'red',
-      ),
-      ToDo(
-        id: '4',
-        title: 'Buy groceries',
-        desc: 'Fruits, Vegetables',
-        dueDate: DateTime.now(),
-        color: 'green',
-        isNotified: true,
-      ),
-      ToDo(
-        id: '5',
-        title: 'Finish report',
-        desc: 'Finalize slides',
-        dueDate: DateTime.now().add(const Duration(days: 1)),
-        color: 'blue',
-      ),
-      ToDo(
-        id: '6',
-        title: 'Call mom',
-        desc: 'Plan weekend visit',
-        dueDate: DateTime.now().add(const Duration(days: 2)),
-        color: 'red',
-      ),
-      ToDo(
-        id: '7',
-        title: 'Buy groceries',
-        desc: 'Milk, Bread, Eggs',
-        dueDate: DateTime.now(),
-        color: 'green',
-        isNotified: true,
-      ),
-      ToDo(
-        id: '8',
-        title: 'Finish report',
-        desc: 'Review data',
-        dueDate: DateTime.now().add(const Duration(days: 1)),
-        color: 'blue',
-      ),
-      ToDo(
-        id: '9',
-        title: 'Call mom',
-        desc: 'Discuss family event',
-        dueDate: DateTime.now().add(const Duration(days: 2)),
-        color: 'red',
-      ),
-    ]);
-  }
-
-  void _addTask() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AddToDoPage(
-          onSaveTask: (ToDo newTask) {
-            setState(() {
-              _todos.add(newTask);
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Task added!'),
-                duration: Duration(seconds: 1),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  void _editTask(ToDo task) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AddToDoPage(
-          onSaveTask: (ToDo updatedTask) {
-            setState(() {
-              final index = _todos.indexWhere((t) => t.id == updatedTask.id);
-              if (index != -1) {
-                _todos[index] = updatedTask;
-              }
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Task updated!'),
-                duration: Duration(seconds: 1),
-              ),
-            );
-          },
-          initialTask: task,
-        ),
-      ),
-    );
-  }
-
-  void _toggleTaskCompletion(String id, bool? value) {
-    setState(() {
-      final index = _todos.indexWhere((todo) => todo.id == id);
-      if (index != -1) {
-        _todos[index] = ToDo(
-          id: _todos[index].id,
-          title: _todos[index].title,
-          desc: _todos[index].desc,
-          dueDate: _todos[index].dueDate,
-          isCompleted: value ?? false,
-          color: _todos[index].color,
-          isNotified: _todos[index].isNotified,
-        );
-      }
-    });
-  }
-
-  void _toggleNotification(String id, bool? value) {
-    setState(() {
-      final index = _todos.indexWhere((todo) => todo.id == id);
-      if (index != -1) {
-        _todos[index] = ToDo(
-          id: _todos[index].id,
-          title: _todos[index].title,
-          desc: _todos[index].desc,
-          dueDate: _todos[index].dueDate,
-          isCompleted: _todos[index].isCompleted,
-          color: _todos[index].color,
-          isNotified: value ?? false,
-        );
-      }
-    });
-  }
-
-  void _deleteTask(String id) {
-    setState(() {
-      _todos.removeWhere((todo) => todo.id == id);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Task deleted!'),
-        duration: Duration(seconds: 1),
-      ),
-    );
-  }
-
-  List<ToDo> _getTodayTasks() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    return _todos.where((todo) {
-      final taskDate =
-          DateTime(todo.dueDate.year, todo.dueDate.month, todo.dueDate.day);
-      return taskDate == today;
-    }).toList();
-  }
-
-  List<ToDo> _getTomorrowTasks() {
-    final now = DateTime.now();
-    final tomorrow = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
-    return _todos.where((todo) {
-      final taskDate =
-          DateTime(todo.dueDate.year, todo.dueDate.month, todo.dueDate.day);
-      return taskDate == tomorrow;
-    }).toList();
-  }
+  bool _isHovering = false;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8),
-      body: _currentIndex == 0
-          ? SafeArea(
-            child: Column(
+    return BlocProvider(
+      create: (context) => TodoBloc()..add(LoadTodos()),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF0F4F8),
+        body: _currentIndex == 0
+            ? Column(
                 children: [
                   Row(
                     children: [
@@ -301,133 +118,194 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                   Expanded(
-                    child: SingleChildScrollView(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const SizedBox(height: 20),
-                            _buildTitle(
-                              title: 'Công việc hôm nay',
-                              titleColor: Colors.white,
-                              backgroundImage: 'assets/day.png',
-                              tasks: _getTodayTasks(),
+                    child: BlocBuilder<TodoBloc, TodoState>(
+                      builder: (context, state) {
+                        if (state is TodoLoading) {
+                          return const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                CircularProgressIndicator(
+                                  color: AppColors.lightGreen,
+                                  strokeWidth: 1,
+                                ),
+                                SizedBox(height: 10),
+                                Text(
+                                  'Chờ xíu nha bà...',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.teal,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 20),
-                            _buildTitle(
-                              title: 'Công việc ngày mai',
-                              titleColor: Colors.white,
-                              backgroundImage: 'assets/night.png',
-                              tasks: _getTomorrowTasks(),
+                          );
+                        } else if (state is TodoError) {
+                          return Center(child: Text(state.message));
+                        } else if (state is TodoLoaded) {
+                          final todos = state.todos;
+                          return SingleChildScrollView(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(height: 20),
+                                  _buildTitle(
+                                    title: 'Công việc hôm nay',
+                                    titleColor: Colors.white,
+                                    backgroundImage: 'assets/day.png',
+                                    tasks: _getTodayTasks(todos),
+                                    context: context,
+                                  ),
+                                  const SizedBox(height: 20),
+                                  _buildTitle(
+                                    title: 'Công việc ngày mai',
+                                    titleColor: Colors.white,
+                                    backgroundImage: 'assets/night.png',
+                                    tasks: _getTomorrowTasks(todos),
+                                    context: context,
+                                  ),
+                                ],
+                              ),
                             ),
-                          ],
-                        ),
-                      ),
+                          );
+                        }
+                        return const Center(child: Text('No tasks available'));
+                      },
                     ),
                   ),
                 ],
-              ),
-          )
-          : SafeArea(
-            child: TasksPage(
-                todos: _todos,
-                onToggleComplete: _toggleTaskCompletion,
-                onToggleNotification: _toggleNotification,
-                onDeleteTask: _deleteTask,
-              ),
-          ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
-              blurRadius: 10,
-              spreadRadius: 2,
-              offset: const Offset(0, -2),
+              )
+            : const TasksPage(),
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
             ),
-          ],
-        ),
-        padding: const EdgeInsets.all(5),
-        height: 70,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(
-                  index: 0,
-                  iconPath: 'assets/Home.png',
-                  label: 'Home',
-                ),
-                const SizedBox(width: 60),
-                _buildNavItem(
-                  index: 1,
-                  iconPath: 'assets/Edit.png',
-                  label: 'Tasks',
-                ),
-              ],
-            ),
-            Positioned(
-              child: StatefulBuilder(
-                builder: (context, setState) {
-                  return InkWell(
-                    onTap: () {
-                      _addTask();
-                    },
-                    onHover: (isHovering) {
-                      setState(() {
-                        _isHovering = isHovering;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: _isHovering
-                              ? [
-                                  AppColors.lightGreen,
-                                  AppColors.lightYellow,
-                                ]
-                              : [
-                                  Colors.teal,
-                                  Colors.teal,
-                                ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.3),
-                            blurRadius: 5,
-                            spreadRadius: 2,
-                            offset: const Offset(0, 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.2),
+                blurRadius: 10,
+                spreadRadius: 2,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(5),
+          height: 70,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(
+                    index: 0,
+                    iconPath: 'assets/Home.png',
+                    label: 'Home',
+                  ),
+                  const SizedBox(width: 60),
+                  _buildNavItem(
+                    index: 1,
+                    iconPath: 'assets/Edit.png',
+                    label: 'Tasks',
+                  ),
+                ],
+              ),
+              Positioned(
+                child: StatefulBuilder(
+                  builder: (context, setState) {
+                    return InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddToDoPage(
+                              onSaveTask: (ToDo newTask) {
+                                context.read<TodoBloc>().add(AddTodo(newTask));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Task added!'),
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                        ],
+                        );
+                      },
+                      onHover: (isHovering) {
+                        setState(() {
+                          _isHovering = isHovering;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: _isHovering
+                                ? [
+                                    AppColors.lightGreen,
+                                    AppColors.lightYellow,
+                                  ]
+                                : [
+                                    Colors.teal,
+                                    Colors.teal,
+                                  ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.3),
+                              blurRadius: 5,
+                              spreadRadius: 2,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Image.asset(
+                          'assets/Note-add.png',
+                          width: 24,
+                          height: 24,
+                          color: Colors.white,
+                        ),
                       ),
-                      child: Image.asset(
-                        'assets/Note-add.png',
-                        width: 24,
-                        height: 24,
-                        color: Colors.white,
-                      ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  List<ToDo> _getTodayTasks(List<ToDo> todos) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return todos.where((todo) {
+      final taskDate =
+          DateTime(todo.dueDate.year, todo.dueDate.month, todo.dueDate.day);
+      return taskDate == today;
+    }).toList();
+  }
+
+  List<ToDo> _getTomorrowTasks(List<ToDo> todos) {
+    final now = DateTime.now();
+    final tomorrow = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+    return todos.where((todo) {
+      final taskDate =
+          DateTime(todo.dueDate.year, todo.dueDate.month, todo.dueDate.day);
+      return taskDate == tomorrow;
+    }).toList();
   }
 
   Widget _buildTitle({
@@ -435,6 +313,7 @@ class _HomePageState extends State<HomePage> {
     required Color titleColor,
     required String backgroundImage,
     required List<ToDo> tasks,
+    required BuildContext context,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -515,7 +394,57 @@ class _HomePageState extends State<HomePage> {
                           child: InkWell(
                             borderRadius: BorderRadius.circular(50),
                             onTap: () {
-                              _deleteTask(todo.id);
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(15),
+                                  ),
+                                  title: const Text(
+                                    'Xác nhận xóa',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textColorRed,
+                                    ),
+                                  ),
+                                  content: const Text(
+                                    'Bạn có chắc chắn muốn xóa công việc này không?',
+                                    style: TextStyle(fontSize: 16),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text(
+                                        'Hủy',
+                                        style: TextStyle(
+                                          color: AppColors.textColorGrey,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        context.read<TodoBloc>().add(DeleteTodo(todo.id));
+                                        Navigator.pop(context);
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Task deleted!'),
+                                            duration: Duration(seconds: 1),
+                                          ),
+                                        );
+                                      },
+                                      child: const Text(
+                                        'Xóa',
+                                        style: TextStyle(
+                                          color: AppColors.textColorRed,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
                             },
                             child: Container(
                               padding: const EdgeInsets.all(10),
@@ -536,11 +465,31 @@ class _HomePageState extends State<HomePage> {
                     ),
                     child: ToDoCard(
                       todo: todo,
-                      onToggleComplete: (value) =>
-                          _toggleTaskCompletion(todo.id, value),
-                      onToggleNotification: (value) =>
-                          _toggleNotification(todo.id, value),
-                      onEdit: () => _editTask(todo), // Thêm onEdit
+                      onToggleComplete: (value) {
+                        context.read<TodoBloc>().add(ToggleTodoCompletion(todo.id, value ?? false));
+                      },
+                      onToggleNotification: (value) {
+                        context.read<TodoBloc>().add(ToggleTodoNotification(todo.id, value ?? false));
+                      },
+                      onEdit: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddToDoPage(
+                              onSaveTask: (ToDo updatedTask) {
+                                context.read<TodoBloc>().add(UpdateTodo(updatedTask));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Task updated!'),
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              },
+                              initialTask: todo,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   );
                 },
