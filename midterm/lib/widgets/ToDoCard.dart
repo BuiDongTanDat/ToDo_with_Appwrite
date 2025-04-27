@@ -7,7 +7,7 @@ class ToDoCard extends StatefulWidget {
   final TodoModel todo;
   final Function(bool?) onToggleComplete;
   final Function(bool?) onToggleNotification;
-  final VoidCallback? onEdit; // Thêm callback onEdit
+  final VoidCallback? onEdit;
 
   const ToDoCard({
     super.key,
@@ -42,8 +42,9 @@ class _ToDoCardState extends State<ToDoCard> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: widget.onEdit, // Gọi onEdit khi nhấn vào card
+      onTap: widget.onEdit,
       child: Container(
+        height: 70,
         margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -58,7 +59,7 @@ class _ToDoCardState extends State<ToDoCard> {
             // Colored bar
             Container(
               width: 10,
-              height: 50,
+              height: double.infinity,
               decoration: BoxDecoration(
                 color: _getColor(),
                 borderRadius: const BorderRadius.only(
@@ -78,13 +79,13 @@ class _ToDoCardState extends State<ToDoCard> {
                     GestureDetector(
                       onTap: () {
                         setState(() {
-                          _isSelected = !_isSelected; // Toggle border
+                          _isSelected = !_isSelected;
                         });
                         widget.onToggleComplete(!widget.todo.isCompleted);
                       },
                       child: Container(
-                        width: 16,
-                        height: 16,
+                        width: 24,
+                        height: 24,
                         padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
@@ -94,8 +95,8 @@ class _ToDoCardState extends State<ToDoCard> {
                           border: Border.all(
                             color: widget.todo.isCompleted
                                 ? Colors.transparent
-                                : AppColors.textColorGrey,
-                            width: 0.7,
+                                : _getColor(),
+                            width: 0.5,
                           ),
                         ),
                         child: widget.todo.isCompleted
@@ -108,29 +109,12 @@ class _ToDoCardState extends State<ToDoCard> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    // Time (Due Date)
-                    Container(
-                      width: 60,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            DateFormat('HH:mm').format(widget.todo.dueDate),
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: AppColors.textColorGrey,
-                            ),
-                          ),
-                          Text(
-                            DateFormat('dd/MM/yyyy')
-                                .format(widget.todo.dueDate),
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: AppColors.textColorGrey,
-                            ),
-                          ),
-                        ],
+                    // Time (Due Time)
+                    Text(
+                      DateFormat('HH:mm').format(widget.todo.dueDate),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: AppColors.textColorGrey,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -143,7 +127,7 @@ class _ToDoCardState extends State<ToDoCard> {
                           Text(
                             widget.todo.title,
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 14,
                               color: widget.todo.isCompleted
                                   ? AppColors.textColorGrey
                                   : Colors.black,
@@ -156,12 +140,14 @@ class _ToDoCardState extends State<ToDoCard> {
                           ),
                           Text(
                             widget.todo.description,
-                            style: const TextStyle(
-                              fontSize: 10,
+                            style: TextStyle(
+                              fontSize: 12,
                               color: AppColors.textColorGrey,
-                              fontStyle: FontStyle.italic,
+                              decoration: widget.todo.isCompleted
+                                  ? TextDecoration.lineThrough
+                                  : null,
                             ),
-                            maxLines: 2,
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
@@ -169,17 +155,23 @@ class _ToDoCardState extends State<ToDoCard> {
                     ),
                     // Notification Toggle
                     Container(
-                      width: 20,
+                     
                       alignment: Alignment.center,
-                      child: GestureDetector(
-                        onTap: () => widget
-                            .onToggleNotification(!widget.todo.isNotified),
-                        child: ImageIcon(
-                          const AssetImage('assets/Notification.png'),
+                      child: IconButton(
+                        onPressed: () {
+                          widget.onToggleNotification(!widget.todo.isNotified);
+                        },
+                        splashRadius: 0.1,
+                        padding: EdgeInsets.all(0),
+                        icon: Image.asset(
+                          widget.todo.isNotified
+                              ? 'assets/Notification_on.png'
+                              : 'assets/Notification.png',
+                          width: 30,
+                          height: 30,
                           color: widget.todo.isNotified
-                              ? AppColors.textColorYellow
+                              ? null
                               : AppColors.textColorGrey,
-                          size: 24,
                         ),
                       ),
                     ),

@@ -27,6 +27,7 @@ class _AddToDoPageState extends State<AddToDoPage>
   late AnimationController _animationController;
   late Animation<Offset> _slideAnimation;
   late DateTime _dueDate;
+  late TimeOfDay _dueTime;
   late String _selectedColor;
   late bool _isNotified;
 
@@ -37,6 +38,9 @@ class _AddToDoPageState extends State<AddToDoPage>
     _titleController.text = widget.initialTask?.title ?? '';
     _descController.text = widget.initialTask?.description ?? '';
     _dueDate = widget.initialTask?.dueDate ?? DateTime.now();
+    _dueTime = widget.initialTask != null
+        ? TimeOfDay.fromDateTime(widget.initialTask!.dueDate)
+        : TimeOfDay.now();
     _selectedColor = widget.initialTask?.color ?? 'red';
     _isNotified = widget.initialTask?.isNotified ?? false;
 
@@ -70,28 +74,36 @@ class _AddToDoPageState extends State<AddToDoPage>
   Future<void> _saveTask() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Combine date and time into a single DateTime
+    final combinedDateTime = DateTime(
+      _dueDate.year,
+      _dueDate.month,
+      _dueDate.day,
+      _dueTime.hour,
+      _dueTime.minute,
+    );
+
     final task = TodoModel(
-      id: '680a7b98866922b1b773',
+      id: widget.initialTask?.id ?? '680a7b98866922b1b773',
       title: _titleController.text.trim(),
       description: _descController.text.trim(),
-      dueDate: _dueDate,
+      dueDate: combinedDateTime,
       color: _selectedColor,
       isCompleted: widget.initialTask?.isCompleted ?? false,
       isNotified: _isNotified,
     );
-    // print("✅" + _dueDate.toString());
 
     try {
-      // Document response = await create(task);
-      Document response = await update(task);
+      Document response =
+          widget.initialTask == null ? await create(task) : await update(task);
       final data = response.data;
-      print("✅" + data.toString());
+      print("✅ $data");
     } catch (e) {
       print("🛑 Error: $e");
     }
 
-    // widget.onSaveTask(task);
-    // Navigator.pop(context);
+    widget.onSaveTask(task);
+    Navigator.pop(context);
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -117,6 +129,29 @@ class _AddToDoPageState extends State<AddToDoPage>
     if (picked != null && picked != _dueDate) {
       setState(() {
         _dueDate = picked;
+      });
+    }
+  }
+
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _dueTime,
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppColors.lightGreen,
+              onPrimary: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _dueTime) {
+      setState(() {
+        _dueTime = picked;
       });
     }
   }
@@ -155,9 +190,11 @@ class _AddToDoPageState extends State<AddToDoPage>
                   ),
                   IconButton(
                     onPressed: _saveTask,
+                    padding: EdgeInsets.zero,
+                    splashRadius: 0.1,
                     icon: ImageIcon(
                       const AssetImage('assets/Note-check.png'),
-                      size: 20,
+                      size: 30,
                       color: AppColors.textColorGreen,
                     ),
                   ),
@@ -234,7 +271,7 @@ class _AddToDoPageState extends State<AddToDoPage>
                             },
                           ),
                           const SizedBox(height: 16),
-                          // Due Date Field
+                          // Due Date and Time Field
                           const Text(
                             'Thời gian hoàn thành:',
                             style: TextStyle(
@@ -244,30 +281,68 @@ class _AddToDoPageState extends State<AddToDoPage>
                             ),
                           ),
                           const SizedBox(height: 5),
-                          GestureDetector(
-                            onTap: () => _selectDate(context),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey.shade300),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.calendar_today,
-                                      size: 20, color: Colors.grey),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    '${_dueDate.day}/${_dueDate.month}/${_dueDate.year}',
-                                    style: const TextStyle(
-                                        fontSize: 12, color: Colors.black),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => _selectDate(context),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                          color: Colors.grey.shade300),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.calendar_today,
+                                            size: 20, color: Colors.grey),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          '${_dueDate.day}/${_dueDate.month}/${_dueDate.year}',
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.black),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ],
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => _selectTime(context),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                          color: Colors.grey.shade300),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.access_time,
+                                            size: 20, color: Colors.grey),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          _dueTime.format(context),
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.black),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 16),
                           // Color Selection
@@ -286,9 +361,9 @@ class _AddToDoPageState extends State<AddToDoPage>
                               const SizedBox(height: 8),
                               _buildColorOption('blue', 'Khẩn cấp'),
                               const SizedBox(height: 8),
-                              _buildColorOption('green', 'Bình thường'),
+                              _buildColorOption('yellow', 'Bình thường'),
                               const SizedBox(height: 8),
-                              _buildColorOption('yellow', 'Không khẩn cấp'),
+                              _buildColorOption('green', 'Không khẩn cấp'),
                             ],
                           ),
                           const SizedBox(height: 16),
@@ -302,13 +377,19 @@ class _AddToDoPageState extends State<AddToDoPage>
                                     _isNotified = !_isNotified;
                                   });
                                 },
-                                icon: ImageIcon(
-                                  const AssetImage('assets/Notification.png'),
-                                  size: 20,
+                                splashRadius: 0.1,
+                                padding: EdgeInsets.all(0),
+                                icon: Image.asset(
+                                  _isNotified
+                                      ? 'assets/Notification_on.png'
+                                      : 'assets/Notification.png',
+                                  width: 30,
+                                  height: 30,
                                   color: _isNotified
-                                      ? AppColors.textColorYellow
-                                      : Colors.grey,
+                                      ? null
+                                      : AppColors.textColorGrey,
                                 ),
+                                
                               ),
                               const Text(
                                 'Bật thông báo',

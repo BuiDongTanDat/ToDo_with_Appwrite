@@ -2,7 +2,7 @@ class TodoModel {
   String id;
   String title;
   String description;
-  DateTime dueDate;
+  DateTime dueDate; // Single field for both date and time
   String color;
   bool isCompleted;
   bool isNotified;
@@ -17,7 +17,7 @@ class TodoModel {
     this.isNotified = false,
   });
 
-  // Convert ToDo to Map for storage (if needed)
+  // Convert ToDo to Map for storage
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -35,7 +35,7 @@ class TodoModel {
     return TodoModel(
       id: map['id'],
       title: map['title'],
-      description: map['description'],
+      description: map['desc'],
       dueDate: DateTime.parse(map['dueDate']),
       color: map['color'],
       isCompleted: map['isCompleted'],
