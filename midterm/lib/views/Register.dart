@@ -28,8 +28,8 @@ class _RegisterPageState extends State<RegisterPage> {
     String password = _passwordController.text.trim();
 
     try {
-      String result = await register(name, email, password);
-      print(result);
+      Map<String, Object?> result = await register(name, email, password);
+      print("✅: $result");
 
       String _message = result == '201'
           ? "Account created successfully."
@@ -39,7 +39,7 @@ class _RegisterPageState extends State<RegisterPage> {
         SnackBar(content: Text(_message)),
       );
     } catch (e) {
-      print("🛑 Error: $e");
+      print("❌ Error: $e");
     }
   }
 

@@ -82,10 +82,7 @@ class _AddToDoPageState extends State<AddToDoPage>
     // print("✅" + _dueDate.toString());
 
     try {
-      Document response = await create(task);
-      // Document response = await update(task);
-      final data = response.data;
-      print("✅" + data.toString());
+      // Document response = await createOrUpdate(task, 0);
     } catch (e) {
       print("🛑 Error: $e");
     }

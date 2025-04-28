@@ -2,17 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:midterm/views/AddToDoPage.dart';
 import 'package:midterm/views/Login.dart';
 import 'package:midterm/views/Register.dart';
-import 'package:midterm/views/VerificationPage.dart';
 
 import 'views/HomePage.dart';
 
-void main() {
+void main() async {
   runApp(MaterialApp(
-    routes: {
-      '/verify': (context) => const VerifyPage(),
-    },
     debugShowCheckedModeBanner: false,
     theme: ThemeData(),
-    home: HomePage(),
+    home: RegisterPage(),
   ));
 }
