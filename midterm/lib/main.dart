@@ -31,7 +31,7 @@ void main() async {
       create: (context) => TodoBloc()..add(LoadTodos()),
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: ForgotPasswordPage(),
+        home: HomePage(),
        
       ),
     ),

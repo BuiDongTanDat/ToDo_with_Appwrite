@@ -1,11 +1,14 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/data/latest.dart' as tz;
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest.dart' as tz;
 
 class NotificationService {
   NotificationService._internal();
-  static final NotificationService _notificationService = NotificationService._internal();
-  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  static final NotificationService _notificationService =
+      NotificationService._internal();
+  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   factory NotificationService() {
     return _notificationService;
@@ -16,20 +19,25 @@ class NotificationService {
       // Initialize timezone data
       tz.initializeTimeZones();
       // Set the local timezone instead of UTC
-      tz.setLocalLocation(tz.getLocation(tz.local.name));
+      final String currentTimezone =
+          await FlutterTimezone.getLocalTimezone() ?? 'UTC';
+      tz.setLocalLocation(tz.getLocation(currentTimezone));
 
       // Android initialization settings
       const AndroidInitializationSettings initializationSettingsAndroid =
-          AndroidInitializationSettings('@mipmap/ic_launcher'); // Ensure icon exists in res/mipmap
+          AndroidInitializationSettings(
+              '@mipmap/ic_launcher'); // Ensure icon exists in res/mipmap
 
       // iOS initialization settings
-      const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings(
+      const DarwinInitializationSettings initializationSettingsIOS =
+          DarwinInitializationSettings(
         requestAlertPermission: true,
         requestBadgePermission: true,
         requestSoundPermission: true,
       );
 
-      const InitializationSettings initializationSettings = InitializationSettings(
+      const InitializationSettings initializationSettings =
+          InitializationSettings(
         android: initializationSettingsAndroid,
         iOS: initializationSettingsIOS,
       );
@@ -48,7 +56,8 @@ class NotificationService {
     try {
       // Android 13+ permission
       if (await _flutterLocalNotificationsPlugin
-              .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+              .resolvePlatformSpecificImplementation<
+                  AndroidFlutterLocalNotificationsPlugin>()
               ?.requestNotificationsPermission() ==
           false) {
         print('Android notification permission denied');
@@ -56,7 +65,8 @@ class NotificationService {
 
       // iOS permission
       if (await _flutterLocalNotificationsPlugin
-              .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+              .resolvePlatformSpecificImplementation<
+                  IOSFlutterLocalNotificationsPlugin>()
               ?.requestPermissions(alert: true, badge: true, sound: true) ==
           false) {
         print('iOS notification permission denied');
@@ -102,7 +112,8 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.time,
       );
-      print('Scheduled notification: ID=$id, Title=$title, Time=$scheduledDate');
+      print(
+          'Scheduled notification: ID=$id, Title=$title, Time=$scheduledDate');
     } catch (e) {
       print('Error scheduling notification: $e');
     }
