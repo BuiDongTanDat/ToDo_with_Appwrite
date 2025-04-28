@@ -1,12 +1,11 @@
 import 'package:appwrite/appwrite.dart';
 
 final client = Client()
-    .setEndpoint('http://10.0.2.2/v1')
-    .setProject('680a19460008faafadca')
-    .setSelfSigned(status: true);
+    .setEndpoint('https://fra.cloud.appwrite.io/v1')
+    .setProject('6808d76b0017fb762a1a');
 
 final account = Account(client);
 final databases = Databases(client);
 
-const DATABASE = '680a19f5002a4902d133';
-const TODO_COLLECTION = '680a68650019c22cc811';
+const DATABASE = '6808de5f0009e65839f9';
+const TODO_COLLECTION = '6808df910006ad685af3';

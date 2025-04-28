@@ -1,53 +1,50 @@
 import 'package:appwrite/appwrite.dart';
-import 'package:appwrite/models.dart';
-import 'package:midterm/backend/controllers/AuthController.dart';
 import 'package:midterm/model/TodoModel.dart';
 import '../appwrite_config.dart';
 
-Future<List<Document>> getTodos() async {
-  final result = await databases.listDocuments(
-    databaseId: DATABASE,
-    collectionId: TODO_COLLECTION,
-  );
-  return result.documents;
+Future<Map<String, Object?>> getTodos() async {
+  try {
+    final result = await databases.listDocuments(
+      databaseId: DATABASE,
+      collectionId: TODO_COLLECTION,
+    );
+
+    return {
+      'code': 200,
+      'response': result.documents,
+    };
+  } catch (e) {
+    throw Exception("Unexpected error in getTodos(): $e");
+  }
 }
 
-Future<Document> create(TodoModel model) async {
-  await login("test@gmail.com", "12345678");
+Future<Map<String, Object?>> createOrUpdate(TodoModel model, int action) async {
+  // action = 0 = add
+  // action = 1 = update
+  try {
+    final response = await databases.createDocument(
+      databaseId: DATABASE,
+      collectionId: TODO_COLLECTION,
+      documentId: action == 0 ? ID.unique() : model.id,
+      data: {
+        'title': model.title,
+        'description': model.description,
+        'dueDate': model.dueDate.toIso8601String(),
+        'color': model.color,
+        'isCompleted': model.isCompleted,
+        'isNotified': model.isNotified
+      },
+    );
 
-  final response = await databases.createDocument(
-    databaseId: DATABASE,
-    collectionId: TODO_COLLECTION,
-    documentId: ID.unique(),
-    data: {
-      'title': model.title,
-      'description': model.description,
-      'dueDate': model.dueDate.toIso8601String(),
-      'color': model.color,
-      'isCompleted': model.isCompleted,
-      'isNotified': model.isNotified
-    },
-  );
-  return response;
-}
-
-Future<Document> update(TodoModel model) async {
-  await login("test@gmail.com", "12345678");
-
-  final response = await databases.updateDocument(
-    databaseId: DATABASE,
-    collectionId: TODO_COLLECTION,
-    documentId: model.id,
-    data: {
-      'title': model.title,
-      'description': model.description,
-      'dueDate': model.dueDate.toIso8601String(),
-      'color': model.color,
-      'isCompleted': model.isCompleted,
-      'isNotified': model.isNotified
-    },
-  );
-  return response;
+    return {
+      'code': 200,
+      'response': response,
+    };
+  } on AppwriteException catch (e) {
+    return {'code': e.code, 'response': e.message};
+  } catch (e) {
+    throw Exception("Unexpected error in createOrUpdate(): $e");
+  }
 }
 
 Future<void> delete(String documentId) async {
