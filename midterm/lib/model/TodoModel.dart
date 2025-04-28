@@ -2,10 +2,11 @@ class TodoModel {
   String id;
   String title;
   String description;
-  DateTime dueDate;
+  DateTime dueDate; // Single field for both date and time
   String color;
   bool isCompleted;
   bool isNotified;
+  DateTime? notificationDate; // New field for notification date and time
 
   TodoModel({
     this.id = '',
@@ -15,9 +16,10 @@ class TodoModel {
     required this.color,
     this.isCompleted = false,
     this.isNotified = false,
+    this.notificationDate,
   });
 
-  // Convert ToDo to Map for storage (if needed)
+  // Convert ToDo to Map for storage
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -27,6 +29,7 @@ class TodoModel {
       'color': color,
       'isCompleted': isCompleted,
       'isNotified': isNotified,
+      'notificationDate': notificationDate?.toIso8601String(),
     };
   }
 
@@ -35,11 +38,14 @@ class TodoModel {
     return TodoModel(
       id: map['id'],
       title: map['title'],
-      description: map['description'],
+      description: map['desc'],
       dueDate: DateTime.parse(map['dueDate']),
       color: map['color'],
       isCompleted: map['isCompleted'],
       isNotified: map['isNotified'],
+      notificationDate: map['notificationDate'] != null
+          ? DateTime.parse(map['notificationDate'])
+          : null,
     );
   }
 }

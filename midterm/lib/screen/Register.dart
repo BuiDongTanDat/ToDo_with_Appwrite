@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:midterm/backend/controllers/AuthController.dart';
+import 'package:midterm/widgets/CustomElevatedButton.dart';
+import 'package:midterm/widgets/CustomOutlineButton.dart';
 import '../theme/color.dart';
 import '../widgets/CustomInputField.dart';
 import 'Login.dart';
@@ -57,15 +59,22 @@ class _RegisterPageState extends State<RegisterPage> {
               height: MediaQuery.of(context).size.height /
                   2, // Chiếm nửa trên màn hình
               child: Container(
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage('assets/alltask.png'),
+                decoration: BoxDecoration(
+                  image: const DecorationImage(
+                    image: AssetImage('assets/bg2.png'),
                     fit: BoxFit.cover, // Phủ đầy khu vực
                   ),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(50),
-                    bottomRight: Radius.circular(50),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(100),
+                    bottomRight: Radius.circular(100),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -98,7 +107,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                 Text(
                                   'ĐĂNG KÝ',
                                   style: TextStyle(
-                                    fontSize: 16, // Giảm từ 32 xuống 12
+                                    fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.textColorBlue,
                                   ),
@@ -154,47 +163,26 @@ class _RegisterPageState extends State<RegisterPage> {
                                   },
                                 ),
                                 const SizedBox(height: 24),
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 40, // Giảm chiều cao nút
-                                  child: ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.textColorBlue,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                    ),
-                                    onPressed: () => _register(context),
-                                    child: const Text(
-                                      'Đăng ký',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12, // Giảm kích thước chữ
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                                CustomElevatedButton(
+                                    text: "Đăng ký",
+                                    onPressed: () {
+                                      _register(context);
+                                    })
                               ],
                             ),
                           ),
                         ),
                         const SizedBox(height: 20),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => LoginPage()),
-                            );
-                          },
-                          child: Text(
-                            'Đã có tài khoản? Đăng nhập',
-                            style: TextStyle(
-                              color: AppColors.textColorGreen,
-                              fontSize: 10, // Giảm từ 14 xuống 10
-                            ),
-                          ),
-                        ),
+                        CustomOutlinedButton(
+                            text: "Đã có tài khoản? Đăng nhập",
+                            onPressed: () {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => LoginPage(),
+                                ),
+                              );
+                            })
                       ],
                     ),
                   ),

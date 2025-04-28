@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:midterm/backend/controllers/AuthController.dart';
+import 'package:midterm/widgets/CustomElevatedButton.dart';
+import 'package:midterm/widgets/CustomOutlineButton.dart';
 import '../theme/color.dart';
 import '../widgets/CustomInputField.dart';
 import 'Register.dart';
@@ -48,15 +50,22 @@ class LoginPage extends StatelessWidget {
               height: MediaQuery.of(context).size.height /
                   2, // Chiếm nửa trên màn hình
               child: Container(
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
+                decoration: BoxDecoration(
+                  image: const DecorationImage(
                     image: AssetImage('assets/bg2.png'),
                     fit: BoxFit.cover,
                   ),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(50),
-                    bottomRight: Radius.circular(50),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(100),
+                    bottomRight: Radius.circular(100),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -89,7 +98,7 @@ class LoginPage extends StatelessWidget {
                                 const Text(
                                   'ĐĂNG NHẬP',
                                   style: TextStyle(
-                                    fontSize: 16, // Giảm từ 32 xuống 12
+                                    fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.textColorBlue,
                                   ),
@@ -120,47 +129,26 @@ class LoginPage extends StatelessWidget {
                                   },
                                 ),
                                 const SizedBox(height: 24),
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 40, // Giảm chiều cao nút
-                                  child: ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.textColorBlue,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                    ),
-                                    onPressed: () => _login(context),
-                                    child: const Text(
-                                      'Đăng nhập',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12, // Giảm kích thước chữ
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                                CustomElevatedButton(
+                                    text: "Đăng nhập",
+                                    onPressed: () {
+                                      _login(context);
+                                    })
                               ],
                             ),
                           ),
                         ),
                         const SizedBox(height: 20),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => RegisterPage()),
-                            );
-                          },
-                          child: Text(
-                            'Chưa có tài khoản? Đăng ký ngay',
-                            style: TextStyle(
-                              color: AppColors.textColorGreen,
-                              fontSize: 10, // Giảm từ 14 xuống 10
-                            ),
-                          ),
-                        ),
+                        CustomOutlinedButton(
+                            text: "Đăng ký",
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => RegisterPage(),
+                                ),
+                              );
+                            }),
                       ],
                     ),
                   ),

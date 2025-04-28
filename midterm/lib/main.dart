@@ -1,18 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:midterm/views/AddToDoPage.dart';
-import 'package:midterm/views/Login.dart';
-import 'package:midterm/views/Register.dart';
-import 'package:midterm/views/VerificationPage.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:midterm/bloc/todo_bloc.dart';
+import 'package:midterm/bloc/todo_event.dart';
+import 'package:midterm/screen/HomePage.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'service/permission_service.dart';
 
-import 'views/HomePage.dart';
+Future<void> initializeTimezone() async {
+  tz.initializeTimeZones();
+}
 
-void main() {
-  runApp(MaterialApp(
-    routes: {
-      '/verify': (context) => const VerifyPage(),
-    },
-    debugShowCheckedModeBanner: false,
-    theme: ThemeData(),
-    home: HomePage(),
-  ));
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await requestExactAlarmPermission();
+  await initializeTimezone();
+
+  runApp(
+    BlocProvider(
+      create: (context) => TodoBloc()..add(LoadTodos()),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: HomePage(),
+      ),
+    ),
+  );
 }

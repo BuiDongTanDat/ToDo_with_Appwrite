@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/color.dart';
+import 'Login.dart';
 
 class IntroPage extends StatelessWidget {
   const IntroPage({super.key});
@@ -19,7 +20,6 @@ class IntroPage extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 30),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(10),
@@ -51,14 +51,19 @@ class IntroPage extends StatelessWidget {
               // Get Started Button with Gradient and Shadow
               GestureDetector(
                 onTap: () {
-                  // Add navigation or action here
-                  Navigator.pushReplacementNamed(context, '/home');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => LoginPage(),
+                    ),
+                  );
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF00FF7F), Color(0xFFFFD700)],
+                      colors: [AppColors.lightGreen, AppColors.lightYellow],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
