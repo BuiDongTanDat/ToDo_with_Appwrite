@@ -12,8 +12,22 @@ Future<List<Document>> getTodos() async {
   return result.documents;
 }
 
+Future<void> ensureLoggedIn(String email, String password) async {
+  try {
+    await account.get();
+    // Nếu thành công => đang có session => không cần login lại
+  } on AppwriteException catch (e) {
+    if (e.code == 401) {
+      // 401 = Unauthorized => chưa login => cần login
+      await login(email, password);
+    } else {
+      rethrow; // các lỗi khác ném ra
+    }
+  }
+}
+
 Future<Document> create(TodoModel model) async {
-  await login("test@gmail.com", "12345678");
+  await ensureLoggedIn("hanhtrinhcuathangnam@gmail.com", "123456789");
 
   final response = await databases.createDocument(
     databaseId: DATABASE,
@@ -32,7 +46,7 @@ Future<Document> create(TodoModel model) async {
 }
 
 Future<Document> update(TodoModel model) async {
-  await login("test@gmail.com", "12345678");
+  await ensureLoggedIn("hanhtrinhcuathangnam@gmail.com", "123456789");
 
   final response = await databases.updateDocument(
     databaseId: DATABASE,

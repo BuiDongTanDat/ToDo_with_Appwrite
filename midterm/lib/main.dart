@@ -9,11 +9,10 @@ import 'views/HomePage.dart';
 void main() {
   runApp(MaterialApp(
     routes: {
-      '/': (context) => const HomePage(),
       '/verify': (context) => const VerifyPage(),
     },
     debugShowCheckedModeBanner: false,
     theme: ThemeData(),
-    home: LoginPage(),
+    home: HomePage(),
   ));
 }

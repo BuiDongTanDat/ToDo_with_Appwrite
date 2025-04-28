@@ -3,7 +3,7 @@ import 'package:appwrite/models.dart';
 import '../appwrite_config.dart';
 import '../appwrite_config.dart' as AppwriteClient;
 
-// Register
+// Sign up
 Future<String> register(String name, String email, String password) async {
   try {
     final user = await account.create(
@@ -22,17 +22,17 @@ Future<String> register(String name, String email, String password) async {
 
 // Login
 Future<Session?> login(String email, String password) async {
-  await logout();
+  // await logout();
 
   try {
     final session = await account.createEmailPasswordSession(
       email: email,
       password: password,
     );
-    http: //10.0.2.2
-    await account.createVerification(
-      url: 'http://10.0.2.2',
-    );
+
+    // await account.createVerification(
+    //   url: 'http://10.0.2.2:3000/verify',
+    // );
 
     return session;
   } on AppwriteException catch (e) {
