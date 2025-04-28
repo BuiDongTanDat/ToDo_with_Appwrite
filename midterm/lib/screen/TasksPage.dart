@@ -245,15 +245,33 @@ class _TasksPageState extends State<TasksPage>
       child: ToDoCard(
         todo: todo,
         onToggleComplete: (value) {
-          // Khi trạng thái hoàn thành thay đổi, cập nhật ngay lập tức
           context
               .read<TodoBloc>()
               .add(ToggleTodoCompletion(todo.id, value ?? false));
         },
         onToggleNotification: (value) {
-          context
-              .read<TodoBloc>()
-              .add(ToggleTodoNotification(todo.id, value ?? false));
+          final newNotificationDate = value ?? false
+              ? (todo.notificationDate ??
+                  todo.dueDate.subtract(const Duration(hours: 24)))
+              : null;
+          final updatedTodo = TodoModel(
+            id: todo.id,
+            title: todo.title,
+            description: todo.description,
+            dueDate: todo.dueDate,
+            color: todo.color,
+            isCompleted: todo.isCompleted,
+            isNotified: value ?? false,
+            notificationDate: newNotificationDate,
+          );
+          context.read<TodoBloc>().add(UpdateTodo(updatedTodo));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Notifications ${value ?? false ? 'enabled' : 'disabled'} for "${todo.title}"'),
+              duration: const Duration(seconds: 1),
+            ),
+          );
         },
         onEdit: () => Navigator.push(
           context,

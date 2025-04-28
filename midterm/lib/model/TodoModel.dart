@@ -6,6 +6,7 @@ class TodoModel {
   String color;
   bool isCompleted;
   bool isNotified;
+  DateTime? notificationDate; // New field for notification date and time
 
   TodoModel({
     this.id = '',
@@ -15,6 +16,7 @@ class TodoModel {
     required this.color,
     this.isCompleted = false,
     this.isNotified = false,
+    this.notificationDate,
   });
 
   // Convert ToDo to Map for storage
@@ -27,6 +29,7 @@ class TodoModel {
       'color': color,
       'isCompleted': isCompleted,
       'isNotified': isNotified,
+      'notificationDate': notificationDate?.toIso8601String(),
     };
   }
 
@@ -40,6 +43,9 @@ class TodoModel {
       color: map['color'],
       isCompleted: map['isCompleted'],
       isNotified: map['isNotified'],
+      notificationDate: map['notificationDate'] != null
+          ? DateTime.parse(map['notificationDate'])
+          : null,
     );
   }
 }

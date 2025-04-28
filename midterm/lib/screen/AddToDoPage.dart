@@ -30,6 +30,8 @@ class _AddToDoPageState extends State<AddToDoPage>
   late TimeOfDay _dueTime;
   late String _selectedColor;
   late bool _isNotified;
+  late DateTime? _notificationDate;
+  late TimeOfDay? _notificationTime;
 
   @override
   void initState() {
@@ -43,6 +45,11 @@ class _AddToDoPageState extends State<AddToDoPage>
         : TimeOfDay.now();
     _selectedColor = widget.initialTask?.color ?? 'red';
     _isNotified = widget.initialTask?.isNotified ?? false;
+    _notificationDate = widget.initialTask?.notificationDate ??
+        (_isNotified ? _dueDate.subtract(Duration(hours: 24)) : null);
+    _notificationTime = widget.initialTask?.notificationDate != null
+        ? TimeOfDay.fromDateTime(widget.initialTask!.notificationDate!)
+        : (_isNotified ? TimeOfDay.fromDateTime(DateTime.now().subtract(Duration(hours: 24))) : null);
 
     // Initialize animation controller
     _animationController = AnimationController(
@@ -74,8 +81,8 @@ class _AddToDoPageState extends State<AddToDoPage>
   Future<void> _saveTask() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Combine date and time into a single DateTime
-    final combinedDateTime = DateTime(
+    // Combine due date and time into a single DateTime
+    final combinedDueDateTime = DateTime(
       _dueDate.year,
       _dueDate.month,
       _dueDate.day,
@@ -83,14 +90,26 @@ class _AddToDoPageState extends State<AddToDoPage>
       _dueTime.minute,
     );
 
+    // Combine notification date and time if notification is enabled
+    final combinedNotificationDateTime = _isNotified && _notificationDate != null && _notificationTime != null
+        ? DateTime(
+            _notificationDate!.year,
+            _notificationDate!.month,
+            _notificationDate!.day,
+            _notificationTime!.hour,
+            _notificationTime!.minute,
+          )
+        : null;
+
     final task = TodoModel(
       id: widget.initialTask?.id ?? '680a7b98866922b1b773',
       title: _titleController.text.trim(),
       description: _descController.text.trim(),
-      dueDate: combinedDateTime,
+      dueDate: combinedDueDateTime,
       color: _selectedColor,
       isCompleted: widget.initialTask?.isCompleted ?? false,
       isNotified: _isNotified,
+      notificationDate: combinedNotificationDateTime,
     );
 
     try {
@@ -129,6 +148,11 @@ class _AddToDoPageState extends State<AddToDoPage>
     if (picked != null && picked != _dueDate) {
       setState(() {
         _dueDate = picked;
+        // Adjust notification date if it exists and is after the new due date
+        if (_notificationDate != null && _notificationDate!.isAfter(picked)) {
+          _notificationDate = picked.subtract(Duration(hours: 24));
+          _notificationTime = TimeOfDay.fromDateTime(_notificationDate!);
+        }
       });
     }
   }
@@ -152,6 +176,56 @@ class _AddToDoPageState extends State<AddToDoPage>
     if (picked != null && picked != _dueTime) {
       setState(() {
         _dueTime = picked;
+      });
+    }
+  }
+
+  Future<void> _selectNotificationDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _notificationDate ?? _dueDate.subtract(Duration(hours: 24)),
+      firstDate: DateTime.now(),
+      lastDate: _dueDate,
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppColors.lightGreen,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+            ),
+            dialogBackgroundColor: Colors.white,
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _notificationDate) {
+      setState(() {
+        _notificationDate = picked;
+      });
+    }
+  }
+
+  Future<void> _selectNotificationTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _notificationTime ?? TimeOfDay.fromDateTime(DateTime.now().subtract(Duration(hours: 24))),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppColors.lightGreen,
+              onPrimary: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _notificationTime) {
+      setState(() {
+        _notificationTime = picked;
       });
     }
   }
@@ -226,7 +300,7 @@ class _AddToDoPageState extends State<AddToDoPage>
                     child: Form(
                       key: _formKey,
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,                     
                         children: [
                           // Title Field
                           const Text(
@@ -375,6 +449,17 @@ class _AddToDoPageState extends State<AddToDoPage>
                                 onPressed: () {
                                   setState(() {
                                     _isNotified = !_isNotified;
+                                    if (_isNotified) {
+                                      // Set default notification time to 24 hours before due date
+                                      _notificationDate = _dueDate.subtract(Duration(hours: 24));
+                                      if (_notificationDate!.isBefore(DateTime.now())) {
+                                        _notificationDate = DateTime.now();
+                                      }
+                                      _notificationTime = TimeOfDay.fromDateTime(_notificationDate!);
+                                    } else {
+                                      _notificationDate = null;
+                                      _notificationTime = null;
+                                    }
                                   });
                                 },
                                 splashRadius: 0.1,
@@ -389,7 +474,6 @@ class _AddToDoPageState extends State<AddToDoPage>
                                       ? null
                                       : AppColors.textColorGrey,
                                 ),
-                                
                               ),
                               const Text(
                                 'Bật thông báo',
@@ -398,6 +482,86 @@ class _AddToDoPageState extends State<AddToDoPage>
                               ),
                             ],
                           ),
+                          if (_isNotified) ...[
+                            const SizedBox(height: 16),
+                            // Notification Date and Time Field
+                            const Text(
+                              'Thời gian thông báo:',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () => _selectNotificationDate(context),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                            color: Colors.grey.shade300),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.calendar_today,
+                                              size: 20, color: Colors.grey),
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            _notificationDate != null
+                                                ? '${_notificationDate!.day}/${_notificationDate!.month}/${_notificationDate!.year}'
+                                                : 'Chọn ngày',
+                                            style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.black),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () => _selectNotificationTime(context),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                            color: Colors.grey.shade300),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.access_time,
+                                              size: 20, color: Colors.grey),
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            _notificationTime != null
+                                                ? _notificationTime!.format(context)
+                                                : 'Chọn giờ',
+                                            style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.black),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),

@@ -18,7 +18,8 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
         id: '1',
         title: 'Buy groceries show notification',
         description: 'Milk, Bread, Eggs',
-        dueDate: DateTime.now().add(const Duration(seconds: 3)), // Due in 1 minute
+        dueDate: DateTime.now().add(const Duration(minutes: 10)),
+        notificationDate: DateTime.now().add(const Duration(minutes: 7)),
         color: 'green',
         isNotified: true,
       ),
@@ -26,7 +27,8 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
         id: '2',
         title: 'Finish report',
         description: 'Complete the quarterly report',
-        dueDate: DateTime.now().add(const Duration(minutes: 2)), // Due in 2 minutes
+        dueDate: DateTime.now().add(const Duration(minutes: 20)),
+        notificationDate: DateTime.now().add(const Duration(minutes: 17)),
         color: 'blue',
         isNotified: true,
       ),
@@ -34,7 +36,8 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
         id: '3',
         title: 'Call mom',
         description: 'Check in and catch up',
-        dueDate: DateTime.now().add(const Duration(minutes: 3)), // Due in 3 minutes
+        dueDate: DateTime.now().add(const Duration(minutes: 30)),
+        notificationDate: DateTime.now().add(const Duration(minutes: 27)),
         color: 'red',
         isNotified: true,
       ),
@@ -42,7 +45,8 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
         id: '4',
         title: 'Buy groceries',
         description: 'Fruits, Vegetables',
-        dueDate: DateTime.now().add(const Duration(minutes: 4)), // Due in 4 minutes
+        dueDate: DateTime.now().add(const Duration(minutes: 40)),
+        notificationDate: DateTime.now().add(const Duration(minutes: 37)),
         color: 'green',
         isNotified: true,
       ),
@@ -50,7 +54,8 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
         id: '5',
         title: 'Finish report',
         description: 'Finalize slides',
-        dueDate: DateTime.now().add(const Duration(minutes: 5)), // Due in 5 minutes
+        dueDate: DateTime.now().add(const Duration(minutes: 50)),
+        notificationDate: DateTime.now().add(const Duration(minutes: 47)),
         color: 'blue',
         isNotified: true,
       ),
@@ -58,7 +63,8 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
         id: '6',
         title: 'Call mom',
         description: 'Plan weekend visit',
-        dueDate: DateTime.now().add(const Duration(minutes: 6)), // Due in 6 minutes
+        dueDate: DateTime.now().add(const Duration(minutes: 60)),
+        notificationDate: DateTime.now().add(const Duration(minutes: 57)),
         color: 'red',
         isNotified: true,
       ),
@@ -66,7 +72,8 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
         id: '7',
         title: 'Buy groceries',
         description: 'Milk, Bread, Eggs',
-        dueDate: DateTime.now().add(const Duration(minutes: 7)), // Due in 7 minutes
+        dueDate: DateTime.now().add(const Duration(minutes: 70)),
+        notificationDate: DateTime.now().add(const Duration(minutes: 67)),
         color: 'green',
         isNotified: true,
       ),
@@ -74,7 +81,8 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
         id: '8',
         title: 'Finish report',
         description: 'Review data',
-        dueDate: DateTime.now().add(const Duration(minutes: 8)), // Due in 8 minutes
+        dueDate: DateTime.now().add(const Duration(minutes: 80)),
+        notificationDate: DateTime.now().add(const Duration(minutes: 77)),
         color: 'blue',
         isNotified: true,
       ),
@@ -82,7 +90,8 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
         id: '9',
         title: 'Call mom',
         description: 'Discuss family event',
-        dueDate: DateTime.now().add(const Duration(minutes: 9)), // Due in 9 minutes
+        dueDate: DateTime.now().add(const Duration(minutes: 90)),
+        notificationDate: DateTime.now().add(const Duration(minutes: 87)),
         color: 'red',
         isNotified: true,
       ),
@@ -103,9 +112,9 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
 
   Future<void> _scheduleNotificationIfNeeded(TodoModel todo) async {
     try {
-      if (!todo.isCompleted && todo.isNotified) {
-        // Calculate notification time: 3 seconds after dueDate
-        final notificationTime = todo.dueDate.add(const Duration(seconds: 3));
+      if (!todo.isCompleted && todo.isNotified && todo.notificationDate != null) {
+        // Use the notificationDate for scheduling
+        final notificationTime = todo.notificationDate!;
         print("Scheduling notification for todo ${todo.id}: $notificationTime");
 
         // Only schedule if notification time is in the future
@@ -192,6 +201,7 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
           isCompleted: event.isCompleted,
           color: _todos[index].color,
           isNotified: _todos[index].isNotified,
+          notificationDate: _todos[index].notificationDate,
         );
         _scheduleNotificationIfNeeded(_todos[index]);
         emit(TodoLoaded(List.from(_todos)));
@@ -215,6 +225,9 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
           isCompleted: _todos[index].isCompleted,
           color: _todos[index].color,
           isNotified: event.isNotified,
+          notificationDate: event.isNotified
+              ? (_todos[index].notificationDate ?? _todos[index].dueDate.subtract(Duration(hours: 24)))
+              : null,
         );
         _scheduleNotificationIfNeeded(_todos[index]);
         emit(TodoLoaded(List.from(_todos)));
