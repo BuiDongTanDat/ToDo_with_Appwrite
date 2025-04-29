@@ -1,7 +1,12 @@
+import 'dart:io';
+import 'package:appwrite/appwrite.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
+import 'package:midterm/service/check_network.dart';
+import '../backend/appwrite_config.dart';
 import '../bloc/todo_bloc.dart';
 import '../bloc/todo_event.dart';
 import '../bloc/todo_state.dart';
@@ -12,7 +17,6 @@ import '../widgets/MyCustomScrollBehavior.dart';
 import '../widgets/ToDoCard.dart';
 import 'AddToDoPage.dart';
 
-// Main page
 class TasksPage extends StatefulWidget {
   const TasksPage({super.key});
 
@@ -29,6 +33,8 @@ class _TasksPageState extends State<TasksPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    // Load todos ngay khi khởi tạo
+    context.read<TodoBloc>().add(LoadTodos());
   }
 
   @override
@@ -37,7 +43,6 @@ class _TasksPageState extends State<TasksPage>
     super.dispose();
   }
 
-  // Chọn ngày
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -62,10 +67,8 @@ class _TasksPageState extends State<TasksPage>
     }
   }
 
-  // Hàm xóa filter
   void _clearDateFilter() => setState(() => _selectedDate = null);
 
-  // Hàm nhóm công việc theo ngày
   Map<DateTime, List<TodoModel>> _groupByDate(List<TodoModel> todos) {
     final Map<DateTime, List<TodoModel>> grouped = {};
     for (var todo in todos) {
@@ -89,7 +92,7 @@ class _TasksPageState extends State<TasksPage>
         TabBar(
           controller: _tabController,
           labelColor: AppColors.textColorGreen,
-          labelStyle: TextStyle(
+          labelStyle: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
           ),
@@ -118,40 +121,27 @@ class _TasksPageState extends State<TasksPage>
                   ),
                 );
               } else if (state is TodoError) {
-                return Center(child: Text(state.message));
+                // Hiển thị SnackBar cho lỗi và sử dụng cached todos
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.message),
+                      backgroundColor:
+                          state.message.contains('Không có kết nối mạng')
+                              ? Colors.orange
+                              : Colors.red,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                });
+                // Hiển thị danh sách todo từ cache nếu có
+                final cachedTodos = state.cachedTodos ?? [];
+                return _buildTabView(cachedTodos);
               } else if (state is TodoLoaded) {
-                // Apply date filter first
-                final filteredTodos = _selectedDate == null
-                    ? state.todos
-                    : state.todos.where((todo) {
-                        final date = DateTime(todo.dueDate.year,
-                            todo.dueDate.month, todo.dueDate.day);
-                        return date == _selectedDate;
-                      }).toList();
-
-                // Filter tasks for each tab
-                final allTasks = filteredTodos;
-                final completedTasks =
-                    filteredTodos.where((todo) => todo.isCompleted).toList();
-                final notCompletedTasks =
-                    filteredTodos.where((todo) => !todo.isCompleted).toList();
-
-                return ScrollConfiguration(
-                  behavior: MyCustomScrollBehavior(),
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildTabContent(
-                          allTasks, 'Yay! Bạn chưa có công việc nào.'),
-                      _buildTabContent(
-                          completedTasks, 'Chưa có công việc nào hoàn thành!'),
-                      _buildTabContent(
-                          notCompletedTasks, 'Yay! Bạn chưa có công việc nào!'),
-                    ],
-                  ),
-                );
+                return _buildTabView(state.todos);
               }
-              return const Center(child: Text('No tasks available'));
+              return const Center(
+                  child: Text('Yay! Bạn chưa có công việc nào!'));
             },
           ),
         ),
@@ -159,39 +149,59 @@ class _TasksPageState extends State<TasksPage>
     );
   }
 
-  Widget _buildTabContent(List<TodoModel> todos, String emptyMessage) {
-    return FutureBuilder(
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (todos.isEmpty) {
-          return _emptyStateMessage(emptyMessage);
-        }
+  Widget _buildTabView(List<TodoModel> todos) {
+    final filteredTodos = _selectedDate == null
+        ? todos
+        : todos.where((todo) {
+            final date = DateTime(
+                todo.dueDate.year, todo.dueDate.month, todo.dueDate.day);
+            return date == _selectedDate;
+          }).toList();
 
-        final groupedTodos = _groupByDate(todos);
-        final dates = groupedTodos.keys.toList()..sort();
+    final allTasks = filteredTodos;
+    final completedTasks =
+        filteredTodos.where((todo) => todo.isCompleted).toList();
+    final notCompletedTasks =
+        filteredTodos.where((todo) => !todo.isCompleted).toList();
 
-        return ListView.builder(
-          itemCount: dates.length,
-          itemBuilder: (context, index) {
-            final date = dates[index];
-            final todosForDate = groupedTodos[date]!;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _sectionHeader(DateFormat('dd/MM/yyyy').format(date)),
-                ...todosForDate.map((todo) => _todoItem(todo)),
-              ],
-            );
-          },
-        );
-      },
-      future: null,
+    return ScrollConfiguration(
+      behavior: MyCustomScrollBehavior(),
+      child: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildTabContent(allTasks, 'Yay! Bạn chưa có công việc nào.'),
+          _buildTabContent(completedTasks, 'Chưa có công việc nào hoàn thành!'),
+          _buildTabContent(
+              notCompletedTasks, 'Yay! Bạn chưa có công việc nào!'),
+        ],
+      ),
     );
   }
 
-  // Build Section Header
+  Widget _buildTabContent(List<TodoModel> todos, String emptyMessage) {
+    if (todos.isEmpty) {
+      return _emptyStateMessage(emptyMessage);
+    }
+
+    final groupedTodos = _groupByDate(todos);
+    final dates = groupedTodos.keys.toList()..sort();
+
+    return ListView.builder(
+      itemCount: dates.length,
+      itemBuilder: (context, index) {
+        final date = dates[index];
+        final todosForDate = groupedTodos[date]!;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _sectionHeader(DateFormat('dd/MM/yyyy').format(date)),
+            ...todosForDate.map((todo) => _todoItem(todo)),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _sectionHeader(String text) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -206,7 +216,10 @@ class _TasksPageState extends State<TasksPage>
     );
   }
 
-  // Hiển thị công việc
+  Future<bool> _checkNetworkConnectivity() async {
+    return await checkNetworkConnectivity();
+  }
+
   Widget _todoItem(TodoModel todo) {
     return Slidable(
       key: ValueKey(todo.id),
@@ -218,13 +231,32 @@ class _TasksPageState extends State<TasksPage>
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(50),
-              onTap: () {
+              onTap: () async {
+                // Kiểm tra kết nối mạng trước khi xóa
+                bool isConnected = await _checkNetworkConnectivity();
+                if (!isConnected) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                          'Không có kết nối mạng. Vui lòng kiểm tra kết nối.'),
+                      backgroundColor: Colors.orange,
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                  return;
+                }
                 showDialog(
                   context: context,
                   builder: (context) => DeleteConfirmationDialog(
                     todoId: todo.id,
                     onDelete: () {
                       context.read<TodoBloc>().add(DeleteTodo(todo.id));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Công việc đã được xóa!'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
                     },
                   ),
                 );
@@ -244,12 +276,49 @@ class _TasksPageState extends State<TasksPage>
       ),
       child: ToDoCard(
         todo: todo,
-        onToggleComplete: (value) {
+        onToggleComplete: (value) async {
+          // Kiểm tra kết nối mạng trước khi toggle complete
+          bool isConnected = await _checkNetworkConnectivity();
+          if (!isConnected) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content:
+                    Text('Không có kết nối mạng. Vui lòng kiểm tra kết nối.'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 3),
+              ),
+            );
+            return;
+          }
           context
               .read<TodoBloc>()
               .add(ToggleTodoCompletion(todo.id, value ?? false));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  '"${todo.title}" marked as ${value ?? false ? 'completed' : 'incomplete'}'),
+              duration: const Duration(seconds: 1),
+            ),
+          );
         },
-        onToggleNotification: (value) {
+        onToggleNotification: (value) async {
+          // Kiểm tra kết nối mạng trước khi toggle notification
+          bool isConnected = await _checkNetworkConnectivity();
+          if (!isConnected) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content:
+                    Text('Không có kết nối mạng. Vui lòng kiểm tra kết nối.'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 3),
+              ),
+            );
+            return;
+          }
+          final account = Account(client);
+          final user = await account.get();
+          final userId = user.$id;
+
           final newNotificationDate = value ?? false
               ? (todo.notificationDate ??
                   todo.dueDate.subtract(const Duration(hours: 24)))
@@ -263,6 +332,7 @@ class _TasksPageState extends State<TasksPage>
             isCompleted: todo.isCompleted,
             isNotified: value ?? false,
             notificationDate: newNotificationDate,
+            userId: userId,
           );
           context.read<TodoBloc>().add(UpdateTodo(updatedTodo));
           ScaffoldMessenger.of(context).showSnackBar(
@@ -277,8 +347,15 @@ class _TasksPageState extends State<TasksPage>
           context,
           MaterialPageRoute(
             builder: (context) => AddToDoPage(
-              onSaveTask: (updatedTask) =>
-                  context.read<TodoBloc>().add(UpdateTodo(updatedTask)),
+              onSaveTask: (updatedTask) {
+                context.read<TodoBloc>().add(UpdateTodo(updatedTask));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Công việc đã được cập nhật!'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
               initialTask: todo,
             ),
           ),
@@ -287,7 +364,6 @@ class _TasksPageState extends State<TasksPage>
     );
   }
 
-  // Hiển thị trạng thái không có công việc
   Widget _emptyStateMessage(String message) {
     return Container(
       margin: const EdgeInsets.all(10),
@@ -300,7 +376,7 @@ class _TasksPageState extends State<TasksPage>
         child: Text(
           _selectedDate == null
               ? message
-              : 'No tasks for ${DateFormat('dd/MM/yyyy').format(_selectedDate!)}',
+              : 'Không có công việc ngày ${DateFormat('dd/MM/yyyy').format(_selectedDate!)}',
           style: const TextStyle(fontSize: 18, color: Colors.grey),
         ),
       ),
@@ -308,7 +384,6 @@ class _TasksPageState extends State<TasksPage>
   }
 }
 
-// Header with filter and clear buttons
 class TasksHeader extends StatelessWidget {
   final DateTime? selectedDate;
   final VoidCallback onSelectDate;

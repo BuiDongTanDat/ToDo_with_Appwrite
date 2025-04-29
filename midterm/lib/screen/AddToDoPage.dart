@@ -1,9 +1,17 @@
-import 'package:appwrite/models.dart';
+import 'dart:io';
+import 'package:appwrite/appwrite.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:midterm/backend/controllers/TodoController.dart';
+import 'package:midterm/service/check_network.dart';
 import 'package:midterm/widgets/CustomInputAdd.dart';
+import 'package:uuid/uuid.dart';
 import '../../../../theme/color.dart';
+import '../backend/appwrite_config.dart';
 import '../model/TodoModel.dart';
+import '../bloc/todo_bloc.dart';
+import '../bloc/todo_event.dart';
 
 class AddToDoPage extends StatefulWidget {
   final Function(TodoModel) onSaveTask;
@@ -32,11 +40,11 @@ class _AddToDoPageState extends State<AddToDoPage>
   late bool _isNotified;
   late DateTime? _notificationDate;
   late TimeOfDay? _notificationTime;
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    // Initialize fields based on initialTask
     _titleController.text = widget.initialTask?.title ?? '';
     _descController.text = widget.initialTask?.description ?? '';
     _dueDate = widget.initialTask?.dueDate ?? DateTime.now();
@@ -49,14 +57,15 @@ class _AddToDoPageState extends State<AddToDoPage>
         (_isNotified ? _dueDate.subtract(Duration(hours: 24)) : null);
     _notificationTime = widget.initialTask?.notificationDate != null
         ? TimeOfDay.fromDateTime(widget.initialTask!.notificationDate!)
-        : (_isNotified ? TimeOfDay.fromDateTime(DateTime.now().subtract(Duration(hours: 24))) : null);
+        : (_isNotified
+            ? TimeOfDay.fromDateTime(
+                DateTime.now().subtract(Duration(hours: 24)))
+            : null);
 
-    // Initialize animation controller
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    // Define slide animation from bottom to top
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0.0, 1.0),
       end: Offset.zero,
@@ -64,7 +73,6 @@ class _AddToDoPageState extends State<AddToDoPage>
       parent: _animationController,
       curve: Curves.easeInOut,
     ));
-    // Start the animation when the screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _animationController.forward();
     });
@@ -78,51 +86,83 @@ class _AddToDoPageState extends State<AddToDoPage>
     super.dispose();
   }
 
+  Future<bool> _checkNetworkConnectivity() async {
+    return await checkNetworkConnectivity();
+  }
+
   Future<void> _saveTask() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_isSaving || !_formKey.currentState!.validate()) return;
 
-    // Combine due date and time into a single DateTime
-    final combinedDueDateTime = DateTime(
-      _dueDate.year,
-      _dueDate.month,
-      _dueDate.day,
-      _dueTime.hour,
-      _dueTime.minute,
-    );
-
-    // Combine notification date and time if notification is enabled
-    final combinedNotificationDateTime = _isNotified && _notificationDate != null && _notificationTime != null
-        ? DateTime(
-            _notificationDate!.year,
-            _notificationDate!.month,
-            _notificationDate!.day,
-            _notificationTime!.hour,
-            _notificationTime!.minute,
-          )
-        : null;
-
-    final task = TodoModel(
-      id: widget.initialTask?.id ?? '680a7b98866922b1b773',
-      title: _titleController.text.trim(),
-      description: _descController.text.trim(),
-      dueDate: combinedDueDateTime,
-      color: _selectedColor,
-      isCompleted: widget.initialTask?.isCompleted ?? false,
-      isNotified: _isNotified,
-      notificationDate: combinedNotificationDateTime,
-    );
-
-    try {
-      Document response =
-          widget.initialTask == null ? await create(task) : await update(task);
-      final data = response.data;
-      print("✅ $data");
-    } catch (e) {
-      print("🛑 Error: $e");
+    // Kiểm tra kết nối mạng
+    bool isConnected = await _checkNetworkConnectivity();
+    if (!isConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không có kết nối mạng. Vui lòng kiểm tra kết nối.'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
     }
 
-    widget.onSaveTask(task);
-    Navigator.pop(context);
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final account = Account(client);
+      final user = await account.get();
+      final userId = user.$id;
+
+      final combinedDueDateTime = DateTime(
+        _dueDate.year,
+        _dueDate.month,
+        _dueDate.day,
+        _dueTime.hour,
+        _dueTime.minute,
+      );
+
+      final combinedNotificationDateTime =
+          _isNotified && _notificationDate != null && _notificationTime != null
+              ? DateTime(
+                  _notificationDate!.year,
+                  _notificationDate!.month,
+                  _notificationDate!.day,
+                  _notificationTime!.hour,
+                  _notificationTime!.minute,
+                )
+              : null;
+
+      final task = TodoModel(
+        id: widget.initialTask?.id ?? const Uuid().v4(),
+        title: _titleController.text.trim(),
+        description: _descController.text.trim().isEmpty
+            ? null
+            : _descController.text.trim(),
+        dueDate: combinedDueDateTime,
+        color: _selectedColor,
+        isCompleted: widget.initialTask?.isCompleted ?? false,
+        isNotified: _isNotified,
+        notificationDate: combinedNotificationDateTime,
+        userId: userId,
+      );
+
+      widget.onSaveTask(task);
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi khi lưu công việc: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } finally {
+      setState(() {
+        _isSaving = false;
+      });
+    }
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -148,7 +188,6 @@ class _AddToDoPageState extends State<AddToDoPage>
     if (picked != null && picked != _dueDate) {
       setState(() {
         _dueDate = picked;
-        // Adjust notification date if it exists and is after the new due date
         if (_notificationDate != null && _notificationDate!.isAfter(picked)) {
           _notificationDate = picked.subtract(Duration(hours: 24));
           _notificationTime = TimeOfDay.fromDateTime(_notificationDate!);
@@ -210,7 +249,8 @@ class _AddToDoPageState extends State<AddToDoPage>
   Future<void> _selectNotificationTime(BuildContext context) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: _notificationTime ?? TimeOfDay.fromDateTime(DateTime.now().subtract(Duration(hours: 24))),
+      initialTime: _notificationTime ??
+          TimeOfDay.fromDateTime(DateTime.now().subtract(Duration(hours: 24))),
       builder: (context, child) {
         return Theme(
           data: ThemeData.light().copyWith(
@@ -263,7 +303,7 @@ class _AddToDoPageState extends State<AddToDoPage>
                     ),
                   ),
                   IconButton(
-                    onPressed: _saveTask,
+                    onPressed: _isSaving ? null : _saveTask,
                     padding: EdgeInsets.zero,
                     splashRadius: 0.1,
                     icon: ImageIcon(
@@ -300,9 +340,8 @@ class _AddToDoPageState extends State<AddToDoPage>
                     child: Form(
                       key: _formKey,
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,                     
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Title Field
                           const Text(
                             'Tên công việc:',
                             style: TextStyle(
@@ -323,7 +362,6 @@ class _AddToDoPageState extends State<AddToDoPage>
                             },
                           ),
                           const SizedBox(height: 16),
-                          // Description Field
                           const Text(
                             'Mô tả chi tiết:',
                             style: TextStyle(
@@ -337,15 +375,8 @@ class _AddToDoPageState extends State<AddToDoPage>
                             controller: _descController,
                             hintText: 'Mô tả công việc',
                             maxLines: 3,
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Vui lòng nhập mô tả công việc';
-                              }
-                              return null;
-                            },
                           ),
                           const SizedBox(height: 16),
-                          // Due Date and Time Field
                           const Text(
                             'Thời gian hoàn thành:',
                             style: TextStyle(
@@ -419,7 +450,6 @@ class _AddToDoPageState extends State<AddToDoPage>
                             ],
                           ),
                           const SizedBox(height: 16),
-                          // Color Selection
                           const Text(
                             'Mức độ cấp thiết:',
                             style: TextStyle(
@@ -441,7 +471,6 @@ class _AddToDoPageState extends State<AddToDoPage>
                             ],
                           ),
                           const SizedBox(height: 16),
-                          // Notification Toggle
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
@@ -450,12 +479,15 @@ class _AddToDoPageState extends State<AddToDoPage>
                                   setState(() {
                                     _isNotified = !_isNotified;
                                     if (_isNotified) {
-                                      // Set default notification time to 24 hours before due date
-                                      _notificationDate = _dueDate.subtract(Duration(hours: 24));
-                                      if (_notificationDate!.isBefore(DateTime.now())) {
+                                      _notificationDate = _dueDate
+                                          .subtract(Duration(hours: 24));
+                                      if (_notificationDate!
+                                          .isBefore(DateTime.now())) {
                                         _notificationDate = DateTime.now();
                                       }
-                                      _notificationTime = TimeOfDay.fromDateTime(_notificationDate!);
+                                      _notificationTime =
+                                          TimeOfDay.fromDateTime(
+                                              _notificationDate!);
                                     } else {
                                       _notificationDate = null;
                                       _notificationTime = null;
@@ -484,7 +516,6 @@ class _AddToDoPageState extends State<AddToDoPage>
                           ),
                           if (_isNotified) ...[
                             const SizedBox(height: 16),
-                            // Notification Date and Time Field
                             const Text(
                               'Thời gian thông báo:',
                               style: TextStyle(
@@ -498,7 +529,8 @@ class _AddToDoPageState extends State<AddToDoPage>
                               children: [
                                 Expanded(
                                   child: GestureDetector(
-                                    onTap: () => _selectNotificationDate(context),
+                                    onTap: () =>
+                                        _selectNotificationDate(context),
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 16,
@@ -530,7 +562,8 @@ class _AddToDoPageState extends State<AddToDoPage>
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: GestureDetector(
-                                    onTap: () => _selectNotificationTime(context),
+                                    onTap: () =>
+                                        _selectNotificationTime(context),
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 16,
@@ -548,7 +581,8 @@ class _AddToDoPageState extends State<AddToDoPage>
                                           const SizedBox(width: 10),
                                           Text(
                                             _notificationTime != null
-                                                ? _notificationTime!.format(context)
+                                                ? _notificationTime!
+                                                    .format(context)
                                                 : 'Chọn giờ',
                                             style: const TextStyle(
                                                 fontSize: 12,

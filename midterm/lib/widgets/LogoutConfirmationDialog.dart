@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import '../theme/color.dart';
 
-class DeleteConfirmationDialog extends StatelessWidget {
-  final String todoId;
-  final VoidCallback onDelete;
+class LogoutConfirmationDialog extends StatelessWidget {
+  final Future<bool> Function() onLogout;
 
-  const DeleteConfirmationDialog({
+  const LogoutConfirmationDialog({
     super.key,
-    required this.todoId,
-    required this.onDelete,
+    required this.onLogout,
   });
 
   @override
@@ -16,7 +14,7 @@ class DeleteConfirmationDialog extends StatelessWidget {
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       title: const Text(
-        'Xác nhận xóa',
+        'Xác nhận đăng xuất',
         style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
@@ -24,12 +22,12 @@ class DeleteConfirmationDialog extends StatelessWidget {
         ),
       ),
       content: const Text(
-        'Bạn có chắc chắn muốn xóa công việc này không?',
+        'Bạn có chắc chắn muốn đăng xuất không?',
         style: TextStyle(fontSize: 16),
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.pop(context, false), // Return false on cancel
           child: const Text(
             'Hủy',
             style: TextStyle(
@@ -39,12 +37,12 @@ class DeleteConfirmationDialog extends StatelessWidget {
           ),
         ),
         TextButton(
-          onPressed: () {
-            onDelete();
-            Navigator.pop(context);
+          onPressed: () async {
+            final success = await onLogout();
+            Navigator.pop(context, success); // Return success status
           },
           child: const Text(
-            'Xóa',
+            'Đăng xuất',
             style: TextStyle(
               color: AppColors.textColorRed,
               fontSize: 16,

@@ -14,6 +14,7 @@ class IntroPage extends StatelessWidget {
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Centered Image with Shadow
               Container(

@@ -56,3 +56,5 @@ class ToggleTodoNotification extends TodoEvent {
   @override
   List<Object> get props => [id, isNotified];
 }
+
+class ResetTodos extends TodoEvent {}

@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import '../model/TodoModel.dart';
 import '../theme/color.dart';
 
-class ToDoCard extends StatefulWidget {
+class ToDoCard extends StatelessWidget {
   final TodoModel todo;
   final Function(bool?) onToggleComplete;
   final Function(bool?) onToggleNotification;
@@ -17,15 +17,8 @@ class ToDoCard extends StatefulWidget {
     this.onEdit,
   });
 
-  @override
-  State<ToDoCard> createState() => _ToDoCardState();
-}
-
-class _ToDoCardState extends State<ToDoCard> {
-  bool _isSelected = false;
-
   Color _getColor() {
-    switch (widget.todo.color.toLowerCase()) {
+    switch (todo.color.toLowerCase()) {
       case 'red':
         return Colors.red;
       case 'blue':
@@ -41,8 +34,10 @@ class _ToDoCardState extends State<ToDoCard> {
 
   @override
   Widget build(BuildContext context) {
+    final color = _getColor();
+
     return GestureDetector(
-      onTap: widget.onEdit,
+      onTap: onEdit,
       child: Container(
         height: 70,
         margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -50,38 +45,32 @@ class _ToDoCardState extends State<ToDoCard> {
           color: Colors.white,
           borderRadius: const BorderRadius.all(Radius.circular(5)),
           border: Border.all(
-            color: _isSelected ? _getColor() : Colors.transparent,
+            color: todo.isCompleted ? color : Colors.transparent,
             width: 0.5,
           ),
         ),
         child: Row(
           children: [
-            // Colored bar
             Container(
               width: 10,
               height: double.infinity,
               decoration: BoxDecoration(
-                color: _getColor(),
+                color: color,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(4),
                   bottomLeft: Radius.circular(4),
                 ),
               ),
             ),
-            // Main content
             Expanded(
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 child: Row(
                   children: [
-                    // Circular Checkbox
                     GestureDetector(
                       onTap: () {
-                        setState(() {
-                          _isSelected = !_isSelected;
-                        });
-                        widget.onToggleComplete(!widget.todo.isCompleted);
+                        onToggleComplete(!todo.isCompleted);
                       },
                       child: Container(
                         width: 24,
@@ -89,49 +78,46 @@ class _ToDoCardState extends State<ToDoCard> {
                         padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: widget.todo.isCompleted
-                              ? _getColor().withOpacity(0.2)
+                          color: todo.isCompleted
+                              ? color.withOpacity(0.2)
                               : Colors.white,
                           border: Border.all(
-                            color: widget.todo.isCompleted
-                                ? Colors.transparent
-                                : _getColor(),
+                            color:
+                                todo.isCompleted ? Colors.transparent : color,
                             width: 0.5,
                           ),
                         ),
-                        child: widget.todo.isCompleted
+                        child: todo.isCompleted
                             ? ImageIcon(
                                 const AssetImage('assets/Tick.png'),
-                                color: _getColor(),
+                                color: color,
                                 size: 12,
                               )
                             : null,
                       ),
                     ),
                     const SizedBox(width: 10),
-                    // Time (Due Time)
                     Text(
-                      DateFormat('HH:mm').format(widget.todo.dueDate),
+                      DateFormat('HH:mm').format(todo.dueDate),
                       style: const TextStyle(
                         fontSize: 10,
                         color: AppColors.textColorGrey,
                       ),
                     ),
                     const SizedBox(width: 10),
-                    // Task Title and Description
                     Expanded(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.todo.title,
+                            todo.title,
                             style: TextStyle(
                               fontSize: 14,
-                              color: widget.todo.isCompleted
+                              color: todo.isCompleted
                                   ? AppColors.textColorGrey
                                   : Colors.black,
-                              decoration: widget.todo.isCompleted
+                              decoration: todo.isCompleted
                                   ? TextDecoration.lineThrough
                                   : null,
                             ),
@@ -139,11 +125,11 @@ class _ToDoCardState extends State<ToDoCard> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            widget.todo.description,
+                            todo.description ?? '',
                             style: TextStyle(
                               fontSize: 12,
                               color: AppColors.textColorGrey,
-                              decoration: widget.todo.isCompleted
+                              decoration: todo.isCompleted
                                   ? TextDecoration.lineThrough
                                   : null,
                             ),
@@ -153,25 +139,22 @@ class _ToDoCardState extends State<ToDoCard> {
                         ],
                       ),
                     ),
-                    // Notification Toggle
                     Container(
-                     
                       alignment: Alignment.center,
                       child: IconButton(
                         onPressed: () {
-                          widget.onToggleNotification(!widget.todo.isNotified);
+                          onToggleNotification(!todo.isNotified);
                         },
                         splashRadius: 0.1,
-                        padding: EdgeInsets.all(0),
+                        padding: EdgeInsets.zero,
                         icon: Image.asset(
-                          widget.todo.isNotified
+                          todo.isNotified
                               ? 'assets/Notification_on.png'
                               : 'assets/Notification.png',
                           width: 30,
                           height: 30,
-                          color: widget.todo.isNotified
-                              ? null
-                              : AppColors.textColorGrey,
+                          color:
+                              todo.isNotified ? null : AppColors.textColorGrey,
                         ),
                       ),
                     ),

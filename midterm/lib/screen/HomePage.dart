@@ -1,7 +1,13 @@
+import 'dart:io';
+import 'package:appwrite/appwrite.dart';
+import 'package:appwrite/models.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
+import 'package:midterm/service/check_network.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../bloc/todo_bloc.dart';
 import '../bloc/todo_event.dart';
 import '../bloc/todo_state.dart';
@@ -11,9 +17,13 @@ import '../widgets/ToDoCard.dart';
 import 'AddToDoPage.dart';
 import 'TasksPage.dart';
 import '../widgets/DeleteConfirmDialog.dart';
+import 'Login.dart';
+import '../backend/controllers/AuthController.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final String userName;
+
+  const HomePage({super.key, required this.userName});
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -22,128 +32,367 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   bool _isHovering = false;
+  bool _isLoading = false;
+  String _userName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSession();
+  }
+
+  Future<void> _checkSession() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionId = prefs.getString('session_id');
+      final userEmail = prefs.getString('user_email');
+      final userName = prefs.getString('user_name') ?? '';
+
+      if (sessionId == null || userEmail == null) {
+        print('No session found, redirecting to LoginPage');
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginPage()),
+          );
+        }
+        return;
+      }
+
+      // Kiểm tra kết nối mạng
+      bool isConnected = await _checkNetworkConnectivity();
+      if (isConnected) {
+        final result = await checkLoggedIn(userEmail);
+        if (result['code'] == 200) {
+          setState(() {
+            _userName = (result['response'] as User).name;
+          });
+          context.read<TodoBloc>().add(LoadTodos());
+        } else {
+          print('Session invalid: ${result['response']}');
+          await prefs.remove('session_id');
+          await prefs.remove('user_email');
+          await prefs.remove('user_name');
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginPage()),
+            );
+          }
+        }
+      } else {
+        setState(() {
+          _userName = userName; // Hiển thị userName lưu trong reference
+        });
+        context.read<TodoBloc>().add(LoadTodos());
+      }
+    } catch (e) {
+      print('Error checking session: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi xác thực người dùng.'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+      // Vẫn load từ cache ngay cả khi có lỗi
+      context.read<TodoBloc>().add(LoadTodos());
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  // Hàm kiểm tra kết nối mạng
+  Future<bool> _checkNetworkConnectivity() async {
+    return await checkNetworkConnectivity();
+  }
+
+  Future<bool> _handleLogout() async {
+    print('Starting logout process...');
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      print('Calling logout function...');
+      final result = await logout();
+      print('Logout result: $result');
+
+      if (result['code'] == 204) {
+        print('Clearing SharedPreferences...');
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('session_id');
+        await prefs.remove('user_email');
+        await prefs.remove('user_name');
+        print('SharedPreferences cleared.');
+
+        context.read<TodoBloc>().add(ResetTodos());
+        return true;
+      } else {
+        print('Logout failed: ${result['response']}');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Đăng xuất thất bại: ${result['response']}'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+        return false;
+      }
+    } catch (e) {
+      print('Logout error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi đăng xuất: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+      return false;
+    } finally {
+      print('Hiding loading indicator...');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<bool?> _showLogoutConfirmationDialog() async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Text(
+          'Xác nhận đăng xuất',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textColorRed,
+          ),
+        ),
+        content: const Text(
+          'Bạn có chắc chắn muốn đăng xuất không?',
+          style: TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              'Hủy',
+              style: TextStyle(
+                color: AppColors.textColorGrey,
+                fontSize: 16,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              final success = await _handleLogout();
+              Navigator.pop(context, success);
+            },
+            child: const Text(
+              'Đăng xuất',
+              style: TextStyle(
+                color: AppColors.textColorRed,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => TodoBloc()..add(LoadTodos()),
-      child: SafeArea(
-        child: Scaffold(
-          backgroundColor: const Color(0xFFF0F4F8),
-          body: _currentIndex == 0
-              ? Column(
-                  children: [
-                    _buildHeader(),
-                    Expanded(
-                      child: BlocBuilder<TodoBloc, TodoState>(
-                        builder: (context, state) {
-                          if (state is TodoLoading) {
-                            return _buildLoadingState();
-                          } else if (state is TodoError) {
-                            return Center(child: Text(state.message));
-                          } else if (state is TodoLoaded) {
-                            return _buildTaskLists(state.todos);
-                          }
-                          return Container(
-                            padding: EdgeInsets.symmetric(horizontal: 20),
-                            child: const Center(
-                                child: Text('Không có công việc nào!')),
-                          );
-                        },
-                      ),
+    return Material(
+      child: Stack(
+        children: [
+          SafeArea(
+            child: Scaffold(
+              backgroundColor: const Color(0xFFF0F4F8),
+              body: _currentIndex == 0
+                  ? Column(
+                      children: [
+                        _buildHeader(),
+                        Expanded(child: _buildTaskContent()),
+                      ],
+                    )
+                  : const TasksPage(),
+              bottomNavigationBar: _buildBottomNavigationBar(context),
+            ),
+          ),
+          if (_isLoading)
+            AbsorbPointer(
+              child: Container(
+                color: Colors.black.withOpacity(0.5),
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
                     ),
-                  ],
-                )
-              : const TasksPage(),
-          bottomNavigationBar: _buildBottomNavigationBar(context),
-        ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(
+                          color: AppColors.lightGreen,
+                          strokeWidth: 1,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Chờ chút nha ...',
+                          style: TextStyle(
+                            color: AppColors.lightGreen,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 
   Widget _buildHeader() {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.only(
-                bottomRight: Radius.circular(20),
-                bottomLeft: Radius.circular(20),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.end,
+    return BlocBuilder<TodoBloc, TodoState>(
+      builder: (context, state) {
+        String displayUserName = widget.userName; // Fallback
+        if (state is TodoLoaded) {
+          displayUserName = state.userName;
+        }
+        return Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.only(
+                    bottomRight: Radius.circular(20),
+                    bottomLeft: Radius.circular(20),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          'Xin chào',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white,
-                          ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Xin chào',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              displayUserName,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          'Tan Dat',
-                          style: TextStyle(
-                            fontSize: 16,
+                        Container(
+                          decoration: const BoxDecoration(
                             color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            onPressed: _isLoading
+                                ? null
+                                : () async {
+                                    final shouldLogout =
+                                        await _showLogoutConfirmationDialog();
+                                    if (shouldLogout == true && mounted) {
+                                      print('Logout confirmed and completed.');
+                                      Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                const LoginPage()),
+                                      );
+                                    } else {
+                                      print('Logout cancelled or failed.');
+                                    }
+                                  },
+                            icon: const ImageIcon(
+                              AssetImage('assets/Off.png'),
+                              size: 24,
+                              color: Colors.red,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        onPressed: () {},
-                        icon: const ImageIcon(
-                          AssetImage('assets/Off.png'),
-                          size: 24,
-                          color: Colors.red,
-                        ),
-                      ),
-                    )
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildLoadingState() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(
-            color: AppColors.lightGreen,
-            strokeWidth: 1,
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Chờ xíu nha ...',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.teal,
+  Widget _buildTaskContent() {
+    return BlocListener<TodoBloc, TodoState>(
+      listener: (context, state) {
+        if (state is TodoSessionExpired) {
+          print('Session expired, redirecting to LoginPage');
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginPage()),
+          );
+        } else if (state is TodoError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
             ),
-          ),
-        ],
+          );
+        }
+      },
+      child: BlocBuilder<TodoBloc, TodoState>(
+        builder: (context, state) {
+          if (state is TodoLoading) {
+            return _buildTaskLists([]);
+          } else if (state is TodoLoaded) {
+            return _buildTaskLists(state.todos);
+          } else if (state is TodoError) {
+            return _buildTaskLists(state.cachedTodos ?? []);
+          }
+          return const Center(child: Text('Khởi tạo danh sách công việc...'));
+        },
       ),
     );
   }
@@ -185,7 +434,8 @@ class _HomePageState extends State<HomePage> {
     return todos.where((todo) {
       final taskDate =
           DateTime(todo.dueDate.year, todo.dueDate.month, todo.dueDate.day);
-      return taskDate == date;
+      final targetDate = DateTime(date.year, date.month, date.day);
+      return taskDate.isAtSameMomentAs(targetDate);
     }).toList();
   }
 
@@ -220,7 +470,8 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 10),
         tasks.isEmpty
             ? Container(
-                margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                margin:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -252,14 +503,39 @@ class _HomePageState extends State<HomePage> {
                           color: Colors.transparent,
                           child: InkWell(
                             borderRadius: BorderRadius.circular(50),
-                            onTap: () {
+                            onTap: () async {
+                              // Kiểm tra kết nối mạng trước khi xóa
+                              bool isConnected =
+                                  await _checkNetworkConnectivity();
+                              if (!isConnected) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                        'Không có kết nối mạng. Vui lòng kiểm tra kết nối.'),
+                                    backgroundColor: Colors.orange,
+                                    duration: Duration(seconds: 3),
+                                  ),
+                                );
+                                return;
+                              }
                               showDialog(
                                 context: context,
                                 builder: (context) => DeleteConfirmationDialog(
                                   todoId: todo.id,
-                                  onDelete: () => context
-                                      .read<TodoBloc>()
-                                      .add(DeleteTodo(todo.id)),
+                                  onDelete: () {
+                                    print(
+                                        'Dispatching DeleteTodo for ID: ${todo.id}');
+                                    context
+                                        .read<TodoBloc>()
+                                        .add(DeleteTodo(todo.id));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Công việc đã được xóa!'),
+                                        backgroundColor: Colors.green,
+                                        duration: Duration(seconds: 2),
+                                      ),
+                                    );
+                                  },
                                 ),
                               );
                             },
@@ -282,31 +558,53 @@ class _HomePageState extends State<HomePage> {
                     ),
                     child: ToDoCard(
                       todo: todo,
-                      onToggleComplete: (value) {
+                      onToggleComplete: (value) async {
+                        // Kiểm tra kết nối mạng trước khi toggle complete
+                        bool isConnected = await _checkNetworkConnectivity();
+                        if (!isConnected) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Không có kết nối mạng. Vui lòng kiểm tra kết nối.'),
+                              backgroundColor: Colors.orange,
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                          return;
+                        }
                         context
                             .read<TodoBloc>()
                             .add(ToggleTodoCompletion(todo.id, value ?? false));
-                      },
-                      onToggleNotification: (value) {
-                        final newNotificationDate = value ?? false
-                            ? (todo.notificationDate ??
-                                todo.dueDate.subtract(const Duration(hours: 24)))
-                            : null;
-                        final updatedTodo = TodoModel(
-                          id: todo.id,
-                          title: todo.title,
-                          description: todo.description,
-                          dueDate: todo.dueDate,
-                          color: todo.color,
-                          isCompleted: todo.isCompleted,
-                          isNotified: value ?? false,
-                          notificationDate: newNotificationDate,
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                '"${todo.title}" marked as ${value ?? false ? 'completed' : 'incomplete'}'),
+                            backgroundColor: Colors.green,
+                            duration: const Duration(seconds: 1),
+                          ),
                         );
-                        context.read<TodoBloc>().add(UpdateTodo(updatedTodo));
+                      },
+                      onToggleNotification: (value) async {
+                        // Kiểm tra kết nối mạng trước khi toggle notification
+                        bool isConnected = await _checkNetworkConnectivity();
+                        if (!isConnected) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Không có kết nối mạng. Vui lòng kiểm tra kết nối.'),
+                              backgroundColor: Colors.orange,
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                          return;
+                        }
+                        context.read<TodoBloc>().add(
+                            ToggleTodoNotification(todo.id, value ?? false));
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
                                 'Notifications ${value ?? false ? 'enabled' : 'disabled'} for "${todo.title}"'),
+                            backgroundColor: Colors.green,
                             duration: const Duration(seconds: 1),
                           ),
                         );
@@ -322,8 +620,10 @@ class _HomePageState extends State<HomePage> {
                                     .add(UpdateTodo(updatedTask));
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Task updated!'),
-                                    duration: Duration(seconds: 1),
+                                    content:
+                                        Text('Công việc đã được cập nhật!'),
+                                    backgroundColor: Colors.green,
+                                    duration: Duration(seconds: 2),
                                   ),
                                 );
                               },
@@ -391,8 +691,9 @@ class _HomePageState extends State<HomePage> {
                             context.read<TodoBloc>().add(AddTodo(newTask));
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Task added!'),
-                                duration: Duration(seconds: 1),
+                                content: Text('Công việc đã được thêm!'),
+                                backgroundColor: Colors.green,
+                                duration: Duration(seconds: 2),
                               ),
                             );
                           },

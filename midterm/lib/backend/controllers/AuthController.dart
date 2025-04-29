@@ -2,6 +2,7 @@ import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart';
 import '../appwrite_config.dart';
 
+
 // Check if appwrite still saves session
 Future<Map<String, Object?>> checkLoggedIn(String email) async {
   try {
@@ -62,9 +63,12 @@ Future<Map<String, Object?>> login(String email, String password) async {
 }
 
 // Logout
-Future<Map<String, Object?>> logout(String email) async {
+// Đã xóa tham số email vì không cần thiết
+Future<Map<String, Object?>> logout() async {
   try {
     await account.deleteSession(sessionId: 'current');
+    // Clear SharedPreferences
+    
     return {
       'code': 204,
       'response': 'Session deleted successfully.',

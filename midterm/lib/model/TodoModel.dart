@@ -1,51 +1,38 @@
-class TodoModel {
-  String id;
-  String title;
-  String description;
-  DateTime dueDate; // Single field for both date and time
-  String color;
-  bool isCompleted;
-  bool isNotified;
-  DateTime? notificationDate; // New field for notification date and time
+import 'package:equatable/equatable.dart';
+
+class TodoModel extends Equatable {
+  final String id;
+  final String title;
+  final String? description;
+  final DateTime dueDate;
+  final String color;
+  final bool isCompleted;
+  final bool isNotified;
+  final DateTime? notificationDate;
+  final String userId;
 
   TodoModel({
-    this.id = '',
+    required this.id,
     required this.title,
-    required this.description,
+    this.description,
     required this.dueDate,
     required this.color,
-    this.isCompleted = false,
-    this.isNotified = false,
+    required this.isCompleted,
+    required this.isNotified,
     this.notificationDate,
+    required this.userId,
   });
 
-  // Convert ToDo to Map for storage
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'title': title,
-      'desc': description,
-      'dueDate': dueDate.toIso8601String(),
-      'color': color,
-      'isCompleted': isCompleted,
-      'isNotified': isNotified,
-      'notificationDate': notificationDate?.toIso8601String(),
-    };
-  }
-
-  // Create ToDo from Map
-  factory TodoModel.fromMap(Map<String, dynamic> map) {
-    return TodoModel(
-      id: map['id'],
-      title: map['title'],
-      description: map['desc'],
-      dueDate: DateTime.parse(map['dueDate']),
-      color: map['color'],
-      isCompleted: map['isCompleted'],
-      isNotified: map['isNotified'],
-      notificationDate: map['notificationDate'] != null
-          ? DateTime.parse(map['notificationDate'])
-          : null,
-    );
-  }
+  @override
+  List<Object?> get props => [
+        id,
+        title,
+        description,
+        dueDate,
+        color,
+        isCompleted,
+        isNotified,
+        notificationDate,
+        userId,
+      ];
 }
