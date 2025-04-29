@@ -21,7 +21,7 @@ class NotificationService {
 
       // Android initialization settings
       const AndroidInitializationSettings initializationSettingsAndroid =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
+          AndroidInitializationSettings('ic_notification');
 
       // iOS and macOS initialization settings
       const DarwinInitializationSettings initializationSettingsDarwin =
@@ -42,9 +42,7 @@ class NotificationService {
       final bool? initialized =
           await _flutterLocalNotificationsPlugin.initialize(
         initializationSettings,
-        // Optionally handle notification taps
         onDidReceiveNotificationResponse: (NotificationResponse response) {
-          // Handle notification tap (e.g., navigate to todo details)
           print('Notification tapped: ${response.payload}');
         },
       );
@@ -55,10 +53,14 @@ class NotificationService {
 
       // Request permissions
       await _requestPermissions();
+
+      // Ensure Android notification channel is created
+      await _createAndroidNotificationChannel();
+
+      // Log pending notifications for debugging
+      await _logPendingNotifications();
     } catch (e) {
       print('NotificationService init error: $e');
-      // Optionally, rethrow or notify the app of initialization failure
-      // rethrow;
     }
   }
 
@@ -67,9 +69,26 @@ class NotificationService {
       return await FlutterTimezone.getLocalTimezone();
     } catch (e) {
       print('Failed to get local timezone: $e');
-      // Fallback to a default timezone (e.g., device's system timezone or a common one)
       return 'Etc/UTC';
     }
+  }
+
+  Future<void> _createAndroidNotificationChannel() async {
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'todo_channel', // Channel ID
+      'Todo Notifications', // Channel name
+      description: 'Notifications for Todo reminders',
+      importance: Importance.max,
+      playSound: true,
+      enableVibration: true,
+      showBadge: true,
+    );
+
+    final androidPlugin = _flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    await androidPlugin?.createNotificationChannel(channel);
+    print('Notification channel created: todo_channel');
   }
 
   Future<void> _requestPermissions() async {
@@ -83,7 +102,16 @@ class NotificationService {
             await androidPlugin.requestNotificationsPermission();
         if (granted != true) {
           print('Android notification permission not granted');
-          // Optionally, prompt user to enable permissions in settings
+        } else {
+          print('Android notification permission granted');
+        }
+        // Request exact alarm permission (Android 12+)
+        final bool? exactAlarmGranted =
+            await androidPlugin.requestExactAlarmsPermission();
+        if (exactAlarmGranted != true) {
+          print('Android exact alarm permission not granted');
+        } else {
+          print('Android exact alarm permission granted');
         }
       }
 
@@ -99,11 +127,22 @@ class NotificationService {
         );
         if (granted != true) {
           print('iOS notification permission not granted');
-          // Optionally, prompt user to enable permissions in settings
+        } else {
+          print('iOS notification permission granted');
         }
       }
     } catch (e) {
       print('Error requesting permissions: $e');
+    }
+  }
+
+  Future<void> _logPendingNotifications() async {
+    final pendingNotifications =
+        await _flutterLocalNotificationsPlugin.pendingNotificationRequests();
+    print('Pending notifications: ${pendingNotifications.length}');
+    for (var notification in pendingNotifications) {
+      print(
+          'Notification ID: ${notification.id}, Title: ${notification.title}, Scheduled Time: ${notification.payload}');
     }
   }
 
@@ -115,17 +154,29 @@ class NotificationService {
     String? payload,
   }) async {
     try {
-      // Ensure scheduledDate is in the future
+      // Validate inputs
+      if (id < 0) {
+        print('Invalid notification ID: $id');
+        return;
+      }
+      if (title.isEmpty || body.isEmpty) {
+        print('Title or body cannot be empty');
+        return;
+      }
       if (scheduledDate.isBefore(DateTime.now())) {
         print('Cannot schedule notification for past date: $scheduledDate');
         return;
       }
 
+      final tzScheduledDate = tz.TZDateTime.from(scheduledDate, tz.local);
+      print(
+          'Scheduling notification - ID: $id, Title: $title, Body: $body, Time: $tzScheduledDate, Payload: $payload');
+
       await _flutterLocalNotificationsPlugin.zonedSchedule(
         id,
         title,
         body,
-        tz.TZDateTime.from(scheduledDate, tz.local),
+        tzScheduledDate,
         const NotificationDetails(
           android: AndroidNotificationDetails(
             'todo_channel',
@@ -134,25 +185,25 @@ class NotificationService {
             importance: Importance.max,
             priority: Priority.high,
             showWhen: true,
-            // Optional: Add actions
-            // actions: [
-            //   AndroidNotificationAction('mark_done', 'Mark as Done'),
-            // ],
+            enableVibration: true,
+            playSound: true,
+            icon: 'ic_notification',
           ),
           iOS: DarwinNotificationDetails(
             presentAlert: true,
             presentBadge: true,
             presentSound: true,
-            // Optional: Custom sound
-            // sound: 'notification_sound.mp3',
             threadIdentifier: 'todo_thread',
           ),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.time,
+        payload: payload ?? '',
       );
+
       print(
-          'Scheduled notification: ID=$id, Title=$title, Time=$scheduledDate');
+          'Successfully scheduled notification: ID=$id, Title=$title, Time=$tzScheduledDate');
+      await _logPendingNotifications(); // Log after scheduling
     } catch (e) {
       print('Error scheduling notification: $e');
     }
@@ -160,8 +211,13 @@ class NotificationService {
 
   Future<void> cancelNotification(int id) async {
     try {
+      if (id < 0) {
+        print('Invalid notification ID: $id');
+        return;
+      }
       await _flutterLocalNotificationsPlugin.cancel(id);
       print('Cancelled notification: ID=$id');
+      await _logPendingNotifications(); // Log after cancelling
     } catch (e) {
       print('Error cancelling notification: $e');
     }
@@ -171,6 +227,7 @@ class NotificationService {
     try {
       await _flutterLocalNotificationsPlugin.cancelAll();
       print('Cancelled all notifications');
+      await _logPendingNotifications(); // Log after cancelling
     } catch (e) {
       print('Error cancelling all notifications: $e');
     }

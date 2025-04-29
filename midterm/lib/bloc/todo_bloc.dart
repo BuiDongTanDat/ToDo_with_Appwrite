@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:appwrite/appwrite.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:midterm/bloc/todo_event.dart';
@@ -15,12 +14,10 @@ import 'package:retry/retry.dart';
 
 class TodoBloc extends Bloc<TodoEvent, TodoState> {
   List<TodoModel> _todos = [];
-  String _currentUserName = 'User'; // Store username for consistency
+  String _currentUserName = 'User';
   final NotificationService _notificationService = NotificationService();
 
   TodoBloc() : super(TodoInitial()) {
-    _initializeNotificationService();
-
     on<LoadTodos>(_onLoadTodos);
     on<AddTodo>(_onAddTodo);
     on<UpdateTodo>(_onUpdateTodo);
@@ -28,10 +25,17 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
     on<ToggleTodoCompletion>(_onToggleTodoCompletion);
     on<ToggleTodoNotification>(_onToggleTodoNotification);
     on<ResetTodos>(_onResetTodos);
+
+    // Initialize notification service during bloc creation
+    _initializeNotificationService();
   }
 
   Future<void> _initializeNotificationService() async {
-    await _notificationService.init();
+    try {
+      await _notificationService.init();
+    } catch (e) {
+      print('Failed to initialize NotificationService: $e');
+    }
   }
 
   Future<void> _saveTodosToCache(List<TodoModel> todos) async {
@@ -65,10 +69,11 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
         final todosJson = jsonDecode(cachedTodos) as List<dynamic>;
         return todosJson.map((data) {
           return TodoModel(
-            id: data['id'] as String,
+            id: data['id'] as String? ?? '',
             title: data['title'] as String? ?? 'Untitled',
             description: data['description'] as String?,
-            dueDate: DateTime.parse(data['dueDate'] as String),
+            dueDate: DateTime.parse(data['dueDate'] as String? ??
+                DateTime.now().toIso8601String()),
             color: data['color'] as String? ?? 'green',
             isCompleted: data['isCompleted'] as bool? ?? false,
             isNotified: data['isNotified'] as bool? ?? false,
@@ -88,11 +93,23 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
 
   Future<void> _scheduleNotificationIfNeeded(TodoModel todo) async {
     try {
+      // Validate todo ID
+      if (todo.id.isEmpty) {
+        print('Cannot schedule notification for todo with empty ID');
+        return;
+      }
+
+      print('Checking notification for todo ${todo.id}: '
+          'isCompleted=${todo.isCompleted}, '
+          'isNotified=${todo.isNotified}, '
+          'notificationDate=${todo.notificationDate}');
+
       if (!todo.isCompleted &&
           todo.isNotified &&
           todo.notificationDate != null) {
         final notificationTime = todo.notificationDate!;
-        print("Scheduling notification for todo ${todo.id}: $notificationTime");
+        print(
+            'Scheduling notification for todo ${todo.id}: $notificationTime (Current time: ${DateTime.now()})');
 
         if (notificationTime.isAfter(DateTime.now())) {
           await _notificationService.scheduleNotification(
@@ -100,12 +117,14 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
             title: 'ToDo nhắc em: ${todo.title}',
             body: todo.description ?? 'Reminder: Hết hạn rồi em ơi!',
             scheduledDate: notificationTime,
+            payload: todo.id,
           );
         } else {
           print(
               'Notification time is in the past for todo ${todo.id}: $notificationTime');
         }
       } else {
+        print('Cancelling notification for todo ${todo.id}');
         await _notificationService.cancelNotification(todo.id.hashCode);
       }
     } catch (e) {
@@ -120,6 +139,7 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
   Future<void> _onLoadTodos(LoadTodos event, Emitter<TodoState> emit) async {
     emit(TodoLoading());
     try {
+      // Ensure notification service is initialized
       await _initializeNotificationService();
 
       // Load todos and username from cache
@@ -182,7 +202,7 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
               await _scheduleNotificationIfNeeded(todo);
             }
             await _saveTodosToCache(_todos);
-            await prefs.setString('user_name', serverUsername); // Update cache
+            await prefs.setString('user_name', serverUsername);
             print(
                 'Emitting TodoLoaded with ${_todos.length} todos from server');
             emit(TodoLoaded(List.from(_todos), serverUsername,
@@ -194,7 +214,6 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
           }
         } on AppwriteException catch (e) {
           if (e.code == 401) {
-            // Unauthorized, session expired
             print('Session expired: $e');
             emit(TodoSessionExpired());
           } else {
@@ -205,7 +224,6 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
         }
       } else {
         print('No network connection, using cached todos');
-        // Already emitted cached todos above
       }
     } catch (e) {
       print('Error loading todos: $e');
@@ -218,6 +236,13 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
       bool isConnected = await _checkNetworkConnectivity();
       if (!isConnected) {
         print('No network connection, cannot add todo');
+        emit(
+            TodoLoaded(List.from(_todos), _currentUserName, isFromCache: true));
+        return;
+      }
+
+      if (event.todo.id.isEmpty) {
+        print('Cannot add todo with empty ID');
         emit(
             TodoLoaded(List.from(_todos), _currentUserName, isFromCache: true));
         return;
@@ -273,6 +298,13 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
         return;
       }
 
+      if (event.todo.id.isEmpty) {
+        print('Cannot update todo with empty ID');
+        emit(
+            TodoLoaded(List.from(_todos), _currentUserName, isFromCache: true));
+        return;
+      }
+
       final result = await createOrUpdate(event.todo, 1);
       if (result['code'] == 200) {
         final index = _todos.indexWhere((todo) => todo.id == event.todo.id);
@@ -309,6 +341,13 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
         return;
       }
 
+      if (event.id.isEmpty) {
+        print('Cannot delete todo with empty ID');
+        emit(
+            TodoLoaded(List.from(_todos), _currentUserName, isFromCache: true));
+        return;
+      }
+
       print('Attempting to delete todo with ID: ${event.id}');
       final result = await delete(event.id);
       print('Delete result: $result');
@@ -338,6 +377,13 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
       bool isConnected = await _checkNetworkConnectivity();
       if (!isConnected) {
         print('No network connection, cannot toggle completion');
+        emit(
+            TodoLoaded(List.from(_todos), _currentUserName, isFromCache: true));
+        return;
+      }
+
+      if (event.id.isEmpty) {
+        print('Cannot toggle completion for todo with empty ID');
         emit(
             TodoLoaded(List.from(_todos), _currentUserName, isFromCache: true));
         return;
@@ -387,6 +433,13 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
       bool isConnected = await _checkNetworkConnectivity();
       if (!isConnected) {
         print('No network connection, cannot toggle notification');
+        emit(
+            TodoLoaded(List.from(_todos), _currentUserName, isFromCache: true));
+        return;
+      }
+
+      if (event.id.isEmpty) {
+        print('Cannot toggle notification for todo with empty ID');
         emit(
             TodoLoaded(List.from(_todos), _currentUserName, isFromCache: true));
         return;

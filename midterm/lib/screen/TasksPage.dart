@@ -254,6 +254,7 @@ class _TasksPageState extends State<TasksPage>
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Công việc đã được xóa!'),
+                          backgroundColor: Colors.green,
                           duration: Duration(seconds: 2),
                         ),
                       );
@@ -297,6 +298,7 @@ class _TasksPageState extends State<TasksPage>
             SnackBar(
               content: Text(
                   '"${todo.title}" marked as ${value ?? false ? 'completed' : 'incomplete'}'),
+                  backgroundColor: Colors.green,
               duration: const Duration(seconds: 1),
             ),
           );
@@ -339,6 +341,7 @@ class _TasksPageState extends State<TasksPage>
             SnackBar(
               content: Text(
                   'Notifications ${value ?? false ? 'enabled' : 'disabled'} for "${todo.title}"'),
+          backgroundColor: Colors.green,
               duration: const Duration(seconds: 1),
             ),
           );
@@ -352,6 +355,7 @@ class _TasksPageState extends State<TasksPage>
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Công việc đã được cập nhật!'),
+                  backgroundColor: Colors.green,
                     duration: Duration(seconds: 2),
                   ),
                 );
