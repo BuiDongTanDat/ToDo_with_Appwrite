@@ -8,7 +8,7 @@
 
 ## 🎥 Video Demo
 
-[Watch the ToDo With Appwrite demo on YouTube](YOUR_YOUTUBE_VIDEO_LINK_HERE)
+[Watch the ToDo With Appwrite demo on YouTube](https://youtu.be/Inbrj38LT-o)
 
 <!-- Replace YOUR_YOUTUBE_VIDEO_LINK_HERE with the actual YouTube URL. -->
 
@@ -129,25 +129,6 @@ flutter test
 flutter build apk
 ```
 
-## 📱 Supported Platforms
-
-The project includes Flutter platform folders for:
-
-- Android
-- iOS
-- Web
-- Windows
-- macOS
-- Linux
-
-Platform-specific notification permissions and Appwrite callback configuration may be required before deployment.
-
-## 🤝 Contributing
-
-Contributions are welcome. To contribute:
-
-1. Fork the repository.
-2. Create a feature branch.
 3. Make and test your changes.
 4. Open a pull request with a clear description of the changes.
 
